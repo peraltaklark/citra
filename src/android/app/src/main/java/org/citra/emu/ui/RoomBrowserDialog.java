@@ -33,7 +33,7 @@ public class RoomBrowserDialog {
 
     private static String getWebApiUrl() {
         // Default fallback URL
-        String defaultUrl = "https://api.citra-emu.org";
+        String defaultUrl = "http://88.198.47.46:5000";
         try {
             File configFile = new File(CitraDirectory.getConfigFile());
             if (!configFile.exists()) {
