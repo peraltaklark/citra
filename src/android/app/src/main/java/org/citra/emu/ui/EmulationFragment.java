@@ -440,6 +440,7 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
     }
 
     public void addNetPlayMessage(String msg) {
+        mChatLayout.setVisibility(NetPlayManager.NetPlayIsJoined() ? View.VISIBLE : View.GONE);
         if (msg.isEmpty()) {
             return;
         }
