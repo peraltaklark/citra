@@ -1376,9 +1376,9 @@ JNIEXPORT jint JNICALL Java_org_citra_emu_utils_NetPlayManager_NetPlayCreateRoom
 }
 
 JNIEXPORT jint JNICALL Java_org_citra_emu_utils_NetPlayManager_NetPlayJoinRoom(
-    JNIEnv* env, jclass clazz, jstring ipaddress, jint port, jstring username) {
+    JNIEnv* env, jclass clazz, jstring ipaddress, jint port, jstring username, jstring password) {
     return static_cast<jint>(
-        NetPlayJoinRoom(JniHelper::Unwrap(ipaddress), port, JniHelper::Unwrap(username)));
+        NetPlayJoinRoom(JniHelper::Unwrap(ipaddress), port, JniHelper::Unwrap(username), JniHelper::Unwrap(password)));
 }
 
 JNIEXPORT jobjectArray JNICALL
