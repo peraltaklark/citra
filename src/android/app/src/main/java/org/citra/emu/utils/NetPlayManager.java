@@ -96,7 +96,7 @@ public class NetPlayManager {
             }
             if (ipaddress.length() < 7 || username.length() < 5) {
                 Toast.makeText(activity, R.string.multiplayer_input_invalid, Toast.LENGTH_LONG).show();
-            } else if (NetPlayJoinRoom(ipaddress, port, username) == 0) {
+            } else if (NetPlayJoinRoom(ipaddress, port, username, "") == 0) {
                 SetRoomAddress(activity, ipaddress);
                 SetUsername(activity, username);
                 SetRoomPort(activity, portStr);
@@ -142,7 +142,7 @@ public class NetPlayManager {
 
     private static native int NetPlayCreateRoom(String ipaddress, int port, String username);
 
-    public static native int NetPlayJoinRoom(String ipaddress, int port, String username);
+    public static native int NetPlayJoinRoom(String ipaddress, int port, String username, String password);
 
     public static native String[] NetPlayRoomInfo();
 
