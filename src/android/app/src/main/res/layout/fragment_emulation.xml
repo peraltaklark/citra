@@ -72,7 +72,7 @@
         android:layout_margin="16dp"
         android:background="#30000000"
         android:visibility="gone"
-        android:maxHeight="300dp" />
+        android:maxHeight="160dp" />
 
     <ImageButton
         android:id="@+id/chat_fab"
@@ -81,10 +81,10 @@
         android:layout_gravity="top|start"
         android:layout_margin="16dp"
         android:src="@drawable/ic_message"
+        android:alpha="0.4"
         android:background="@drawable/circle_fab_background"
         android:contentDescription="Chat"
         android:visibility="gone"
         android:elevation="6dp" />
 
 </FrameLayout>
-
