@@ -129,7 +129,6 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
                 // Force check after layout is ready; native state might not be synced yet
         mChatLayout.post(() -> mChatLayout.setVisibility(
                 NetPlayManager.NetPlayIsJoined() ? View.VISIBLE : View.GONE));
-        }
         mChatLayout.setOnTouchListener(new View.OnTouchListener() {
             private int prevX, prevY, leftMargin, topMargin;
             private FrameLayout.LayoutParams params;
