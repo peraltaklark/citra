@@ -68,7 +68,8 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
     private ImageButton mChatFab;
     private RecyclerView mChatRecycler;
     private ChatAdapter mChatAdapter;
-    private List<String> mChatMessages;
+    private List<String> mChatMessages;           // overlay list (max 8, cleared on hide)
+    private List<String> mChatHistory;            // full history list (never auto-cleared)
 
     private ChatDialog mChatDialog;
     private ChatDialogAdapter mChatDialogAdapter;
@@ -165,6 +166,9 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
         mChatMessages = new ArrayList<>();
         mChatAdapter = new ChatAdapter(mChatMessages);
         mChatRecycler.setAdapter(mChatAdapter);
+
+        // Full history list (starts empty, never cleared automatically)
+        mChatHistory = new ArrayList<>();
 
         return contents;
     }
@@ -338,24 +342,41 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
     public void addNetPlayMessage(String msg) {
         if (mChatFab != null)
             mChatFab.setVisibility(NetPlayManager.NetPlayIsJoined() ? View.VISIBLE : View.GONE);
+
+        // If we left the room, clear the full history
+        if (!NetPlayManager.NetPlayIsJoined() && mChatHistory != null) {
+            mChatHistory.clear();
+            if (mChatDialogAdapter != null) mChatDialogAdapter.notifyDataSetChanged();
+        }
+
         if (mChatRecycler != null) {
-            mChatRecycler.setVisibility(View.VISIBLE);
+            // Add to overlay list (max 8 items)
+            if (mChatMessages == null) mChatMessages = new ArrayList<>();
             if (mChatMessages.size() >= 8) {
                 mChatMessages.remove(0);
             }
             mChatMessages.add(msg);
             mChatAdapter.notifyDataSetChanged();
+            mChatRecycler.setVisibility(View.VISIBLE);
+            mChatRecycler.scrollToPosition(mChatMessages.size() - 1);
+
+            // Add to full history (unlimited)
+            if (mChatHistory == null) mChatHistory = new ArrayList<>();
+            mChatHistory.add(msg);
             if (mChatDialogAdapter != null) {
                 mChatDialogAdapter.notifyDataSetChanged();
             }
-            mChatRecycler.scrollToPosition(mChatMessages.size() - 1);
+
             // Auto-hide overlay after 6 seconds
             if (mTaskHandler == null) mTaskHandler = new Handler(getMainLooper());
             mTaskHandler.removeCallbacksAndMessages(null);
             mTaskHandler.postDelayed(() -> {
                 if (mChatRecycler != null) mChatRecycler.setVisibility(View.GONE);
-                if (mChatMessages != null) mChatMessages.clear();
-                if (mChatAdapter != null) mChatAdapter.notifyDataSetChanged();
+                // Only clear the overlay list, NOT the history
+                if (mChatMessages != null) {
+                    mChatMessages.clear();
+                    if (mChatAdapter != null) mChatAdapter.notifyDataSetChanged();
+                }
             }, 6000);
         }
     }
@@ -385,7 +406,9 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
         if (mChatDialog == null) {
             mChatDialog = new ChatDialog(getActivity());
         }
-        mChatDialogAdapter = new ChatDialogAdapter(mChatMessages);
+        // Use the full history list for the dialog adapter
+        if (mChatHistory == null) mChatHistory = new ArrayList<>();
+        mChatDialogAdapter = new ChatDialogAdapter(mChatHistory);
         mChatDialog.setAdapter(mChatDialogAdapter);
         mChatDialog.show();
     }
@@ -436,6 +459,8 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             holder.textView.setText(messages.get(position));
+            // Force white text for visibility on dark background
+            holder.textView.setTextColor(0xFFFFFFFF);
         }
 
         @Override
