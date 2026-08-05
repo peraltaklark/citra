@@ -8,6 +8,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -213,14 +214,35 @@ public class RoomBrowserDialog {
                     Toast.makeText(activity, "Room address not available", Toast.LENGTH_SHORT).show();
                     return;
                 }
-                String username = NetPlayManager.GetUsername(activity);
-                if (NetPlayManager.NetPlayJoinRoom(room.address, room.port, username) == 0) {
-                    Toast.makeText(activity, R.string.multiplayer_join_room_success, Toast.LENGTH_SHORT).show();
-                    dialog.dismiss();
+
+                if (room.hasPassword) {
+                    // Prompt for password
+                    EditText passwordInput = new EditText(activity);
+                    passwordInput.setHint("Password");
+                    new AlertDialog.Builder(activity)
+                            .setTitle("Password Required")
+                            .setMessage("Enter password for \"" + room.name + "\"")
+                            .setView(passwordInput)
+                            .setPositiveButton("Join", (d, which) -> {
+                                String password = passwordInput.getText().toString();
+                                joinRoom(activity, dialog, room, password);
+                            })
+                            .setNegativeButton("Cancel", null)
+                            .show();
                 } else {
-                    Toast.makeText(activity, R.string.multiplayer_join_room_failed, Toast.LENGTH_SHORT).show();
+                    joinRoom(activity, dialog, room, "");
                 }
             });
+        }
+
+        private void joinRoom(Activity activity, AlertDialog dialog, RoomInfo room, String password) {
+            String username = NetPlayManager.GetUsername(activity);
+            if (NetPlayManager.NetPlayJoinRoom(room.address, room.port, username, password) == 0) {
+                Toast.makeText(activity, R.string.multiplayer_join_room_success, Toast.LENGTH_SHORT).show();
+                dialog.dismiss();
+            } else {
+                Toast.makeText(activity, R.string.multiplayer_join_room_failed, Toast.LENGTH_SHORT).show();
+            }
         }
 
         @Override
