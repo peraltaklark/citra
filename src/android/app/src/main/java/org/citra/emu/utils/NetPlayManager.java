@@ -142,7 +142,7 @@ public class NetPlayManager {
 
     private static native int NetPlayCreateRoom(String ipaddress, int port, String username);
 
-    private static native int NetPlayJoinRoom(String ipaddress, int port, String username);
+    public static native int NetPlayJoinRoom(String ipaddress, int port, String username);
 
     public static native String[] NetPlayRoomInfo();
 
