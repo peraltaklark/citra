@@ -87,10 +87,7 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        // So this fragment doesn't restart on configuration changes; i.e. rotation.
         setRetainInstance(true);
-
         mPath = getArguments().getString(KEY_GAMEPATH);
         mState = EmulationState.STOPPED;
     }
@@ -133,33 +130,24 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
             mChatLayout.setVisibility(View.GONE);
         }
         mChatLayout.setOnTouchListener(new View.OnTouchListener() {
-            private int prevX;
-            private int prevY;
-            private int leftMargin;
-            private int topMargin;
+            private int prevX, prevY, leftMargin, topMargin;
             private FrameLayout.LayoutParams params;
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 switch (event.getAction()) {
-                    case MotionEvent.ACTION_MOVE: {
-                        final int currX = (int)event.getRawX();
-                        final int currY = (int)event.getRawY();
-                        //params.leftMargin = leftMargin + currX - prevX;
-                        params.topMargin = topMargin + currY - prevY;
+                    case MotionEvent.ACTION_MOVE:
+                        params.topMargin = topMargin + (int)event.getRawY() - prevY;
                         v.setLayoutParams(params);
                         return true;
-                    }
-                    case MotionEvent.ACTION_UP: {
+                    case MotionEvent.ACTION_UP:
                         return true;
-                    }
-                    case MotionEvent.ACTION_DOWN: {
+                    case MotionEvent.ACTION_DOWN:
                         prevX = (int) event.getRawX();
                         prevY = (int) event.getRawY();
                         params = (FrameLayout.LayoutParams)v.getLayoutParams();
                         leftMargin = params.leftMargin;
                         topMargin = params.topMargin;
                         return true;
-                    }
                 }
                 return false;
             }
@@ -167,30 +155,22 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
 
         mBtnChatSend = contents.findViewById(R.id.chat_send_button);
         mBtnChatSend.setOnTouchListener(new View.OnTouchListener() {
-            private int prevX;
-            private int prevY;
-            private int leftMargin;
-            private int topMargin;
+            private int prevX, prevY, leftMargin, topMargin;
             private FrameLayout.LayoutParams params;
             private long touchtime;
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 switch (event.getAction()) {
-                    case MotionEvent.ACTION_MOVE: {
-                        final int currX = (int)event.getRawX();
-                        final int currY = (int)event.getRawY();
-                        //params.leftMargin = leftMargin + currX - prevX;
-                        params.topMargin = topMargin + currY - prevY;
+                    case MotionEvent.ACTION_MOVE:
+                        params.topMargin = topMargin + (int)event.getRawY() - prevY;
                         mChatLayout.setLayoutParams(params);
                         return true;
-                    }
-                    case MotionEvent.ACTION_UP: {
+                    case MotionEvent.ACTION_UP:
                         if (System.currentTimeMillis() - touchtime < 100) {
                             toggleInput();
                         }
                         return true;
-                    }
-                    case MotionEvent.ACTION_DOWN: {
+                    case MotionEvent.ACTION_DOWN:
                         prevX = (int) event.getRawX();
                         prevY = (int) event.getRawY();
                         params = (FrameLayout.LayoutParams)mChatLayout.getLayoutParams();
@@ -198,7 +178,6 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
                         topMargin = params.topMargin;
                         touchtime = System.currentTimeMillis();
                         return true;
-                    }
                 }
                 return false;
             }
@@ -224,15 +203,12 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
     }
 
     @Override
-    public void surfaceCreated(SurfaceHolder holder) {
-        // All work is done in surfaceChanged
-    }
+    public void surfaceCreated(SurfaceHolder holder) {}
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
         mSurface = holder.getSurface();
         updateFrameCallbackRefreshRate();
-        android.util.Log.i("citra", "surfaceChanged format=" + format + " size=" + width + "x" + height + " state=" + mState + " runWhenSurfaceIsValid=" + mRunWhenSurfaceIsValid);
         if (mRunWhenSurfaceIsValid) {
             runWithValidSurface();
         }
@@ -255,10 +231,7 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
-        if (mSurface == null) {
-            // [EmulationFragment] clearSurface called, but surface already null.
-        } else {
-            android.util.Log.i("citra", "surfaceDestroyed state=" + mState);
+        if (mSurface != null) {
             mSurface = null;
             if (mState == EmulationState.RUNNING) {
                 NativeLibrary.SurfaceDestroyed();
@@ -266,10 +239,7 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
                 mState = EmulationState.PAUSED;
                 mRunWhenSurfaceIsValid = true;
             } else if (mState == EmulationState.PAUSED) {
-                // [EmulationFragment] Surface cleared while emulation paused.
                 mRunWhenSurfaceIsValid = true;
-            } else {
-                // [EmulationFragment] Surface cleared while emulation stopped.
             }
         }
     }
@@ -277,15 +247,13 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
     @Override
     public void onResume() {
         super.onResume();
-        android.util.Log.i("citra", "EmulationFragment.onResume state=" + mState + " nativeRunning=" + NativeLibrary.IsRunning() + " hasSurface=" + (mSurface != null));
         updateFrameCallbackRefreshRate();
         postFrameCallbackNow();
+        if (mChatLayout != null) mChatLayout.setVisibility(NetPlayManager.NetPlayIsJoined() ? View.VISIBLE : View.GONE);
 
         if (NativeLibrary.IsRunning()) {
             mState = EmulationState.PAUSED;
         }
-
-        // If the surface is set, run now. Otherwise, wait for it to get set.
         if (mSurface != null) {
             runWithValidSurface();
         } else {
@@ -295,10 +263,8 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
 
     @Override
     public void onPause() {
-        android.util.Log.i("citra", "EmulationFragment.onPause state=" + mState + " hasSurface=" + (mSurface != null));
         if (mState == EmulationState.RUNNING) {
             mState = EmulationState.PAUSED;
-            // Release the surface before pausing, since emulation has to be running for that.
             NativeLibrary.SurfaceDestroyed();
             NativeLibrary.PauseEmulation();
         }
@@ -311,7 +277,6 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
     public void onConfigurationChanged(@NonNull Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
         mInputOverlay.refreshControls();
-
         final ViewTreeObserver observer = getView().getViewTreeObserver();
         observer.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
@@ -332,7 +297,6 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
         final Activity activity = getActivity();
         final View decor = activity.getWindow().getDecorView();
         InputMethodManager imm = activity.getSystemService(InputMethodManager.class);
-
         if (alpha > 0.5f) {
             mChatEditText.clearFocus();
             mChatEditText.setVisibility(View.GONE);
@@ -359,33 +323,20 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
     }
 
     private boolean shouldThrottleNativeDoFrame(long frameTimeNanos) {
-        if (!shouldPaceFrameCallbacks() || !NativeLibrary.IsRunning()) {
-            return false;
-        }
-        if (mLastNativeDoFrameTimeNanos == 0L) {
-            return false;
-        }
-
-        // Keep the UI callback loop alive at display rate, but do not cross the JNI/native
-        // boundary again until roughly one 60 Hz emulation interval has elapsed. This is more
-        // stable than relying on millisecond-delayed Choreographer posts to land on every
-        // second vsync.
+        if (!shouldPaceFrameCallbacks() || !NativeLibrary.IsRunning()) return false;
+        if (mLastNativeDoFrameTimeNanos == 0L) return false;
         final long elapsedNs = Math.max(0L, frameTimeNanos - mLastNativeDoFrameTimeNanos);
         return elapsedNs + FRAME_CALLBACK_SLACK_NS < EMULATION_FRAME_INTERVAL_NS;
     }
 
     private void postFrameCallbackNow() {
-        if (mFrameCallbackPosted) {
-            return;
-        }
+        if (mFrameCallbackPosted) return;
         Choreographer.getInstance().postFrameCallback(this);
         mFrameCallbackPosted = true;
     }
 
     private void removeFrameCallback() {
-        if (!mFrameCallbackPosted) {
-            return;
-        }
+        if (!mFrameCallbackPosted) return;
         Choreographer.getInstance().removeFrameCallback(this);
         mFrameCallbackPosted = false;
     }
@@ -396,16 +347,13 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
     }
 
     public void stopConfiguringControls() {
-        if (!mInputOverlay.isInEditMode()) {
-            return;
-        }
+        if (!mInputOverlay.isInEditMode()) return;
         mBtnDone.setVisibility(View.INVISIBLE);
         mInputOverlay.setInEditMode(false);
     }
 
     public void stopEmulation() {
         if (mState != EmulationState.STOPPED) {
-            android.util.Log.i("citra", "EmulationFragment.stopEmulation state=" + mState);
             mState = EmulationState.STOPPED;
             NativeLibrary.StopEmulation();
         }
@@ -429,9 +377,7 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
     }
 
     public void stopConfiguringLayout() {
-        if (mResizeOverlayTop.getVisibility() == View.INVISIBLE) {
-            return;
-        }
+        if (mResizeOverlayTop.getVisibility() == View.INVISIBLE) return;
         InputOverlay.sHideInputOverlay = mPreviousHide;
         refreshControls();
         mResizeOverlayTop.setVisibility(View.INVISIBLE);
@@ -440,12 +386,8 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
     }
 
     public void addNetPlayMessage(String msg) {
-        mChatLayout.setVisibility(NetPlayManager.NetPlayIsJoined() ? View.VISIBLE : View.GONE);
-        if (msg.isEmpty()) {
-            return;
-        }
-
-        mChatLayout.setVisibility(NetPlayManager.NetPlayIsJoined() ? View.VISIBLE : View.GONE);
+        if (mChatLayout != null) mChatLayout.setVisibility(NetPlayManager.NetPlayIsJoined() ? View.VISIBLE : View.GONE);
+        if (msg.isEmpty()) return;
 
         if (mMessageList == null) {
             mMessageList = new ArrayList<>();
@@ -478,19 +420,13 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
 
     private void runWithValidSurface() {
         mRunWhenSurfaceIsValid = false;
-        android.util.Log.i("citra", "runWithValidSurface state=" + mState + " path=" + mPath);
         if (mState == EmulationState.STOPPED) {
             NativeLibrary.SurfaceChanged(mSurface);
             new Thread(() -> {
                 try {
                     Process.setThreadPriority(Process.THREAD_PRIORITY_DISPLAY);
-                } catch (IllegalArgumentException | SecurityException e) {
-                    android.util.Log.w("citra",
-                            "Failed to raise NativeEmulation thread priority", e);
-                }
-                android.util.Log.i("citra", "NativeEmulation thread entering NativeLibrary.Run");
+                } catch (IllegalArgumentException | SecurityException e) {}
                 NativeLibrary.Run(mPath);
-                android.util.Log.i("citra", "NativeEmulation thread returned from NativeLibrary.Run");
             }, "NativeEmulation").start();
         } else if (mState == EmulationState.PAUSED) {
             NativeLibrary.SurfaceChanged(mSurface);
