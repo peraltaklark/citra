@@ -16,15 +16,52 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import org.citra.emu.R;
+import org.citra.emu.utils.CitraDirectory;
 import org.citra.emu.utils.NetPlayManager;
 import org.citra.emu.utils.WebRequestHandler;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.List;
 
 public class RoomBrowserDialog {
+
+    private static String getWebApiUrl() {
+        // Default fallback URL
+        String defaultUrl = "https://api.citra-emu.org";
+        try {
+            File configFile = new File(CitraDirectory.getConfigFile());
+            if (!configFile.exists()) {
+                return defaultUrl;
+            }
+            BufferedReader reader = new BufferedReader(new FileReader(configFile));
+            String line;
+            boolean inWebService = false;
+            while ((line = reader.readLine()) != null) {
+                line = line.trim();
+                if (line.equals("[WebService]")) {
+                    inWebService = true;
+                } else if (line.startsWith("[") && line.endsWith("]")) {
+                    inWebService = false;
+                } else if (inWebService && line.startsWith("web_api_url")) {
+                    String[] parts = line.split("=", 2);
+                    if (parts.length == 2) {
+                        String url = parts[1].trim();
+                        reader.close();
+                        return url.isEmpty() ? defaultUrl : url;
+                    }
+                }
+            }
+            reader.close();
+        } catch (Exception e) {
+            // fall through to default
+        }
+        return defaultUrl;
+    }
 
     public static class RoomInfo {
         String name;
@@ -94,7 +131,8 @@ public class RoomBrowserDialog {
         new Thread(() -> {
             List<RoomInfo> rooms = new ArrayList<>();
             try {
-                WebRequestHandler handler = WebRequestHandler.Create("https://api.citra-emu.org/lobby");
+                String apiUrl = getWebApiUrl() + "/lobby";
+                WebRequestHandler handler = WebRequestHandler.Create(apiUrl);
                 if (handler != null) {
                     StringBuilder sb = new StringBuilder();
                     byte[] buffer = handler.data();
