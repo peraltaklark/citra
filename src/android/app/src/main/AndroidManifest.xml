@@ -25,7 +25,7 @@
         android:smallScreens="true"
         android:xlargeScreens="true" />
 
-    <application
+    <application android:usesCleartextTraffic="true"
         android:banner="@mipmap/ic_citra"
         android:hardwareAccelerated="true"
         android:icon="@mipmap/ic_citra"
