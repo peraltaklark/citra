@@ -172,6 +172,7 @@ public class RunningSettingDialog extends DialogFragment {
         public static final int SETTING_MULTIPLAYER_JOIN_ROOM = 402;
         public static final int SETTING_MULTIPLAYER_ROOM_MEMBER = 403;
         public static final int SETTING_MULTIPLAYER_EXIT_ROOM = 404;
+        public static final int SETTING_MULTIPLAYER_PUBLIC_ROOMS = 405;
 
         // view type
         public static final int TYPE_CHECKBOX = 0;
@@ -301,6 +302,9 @@ public class RunningSettingDialog extends DialogFragment {
             case SettingsItem.SETTING_MULTIPLAYER_EXIT_ROOM:
                 NetPlayManager.NetPlayLeaveRoom();
                 loadSubMenu(MENU_MULTIPLAYER);
+                break;
+            case SettingsItem.SETTING_MULTIPLAYER_PUBLIC_ROOMS:
+                RoomBrowserDialog.ShowRoomBrowser(activity);
                 break;
             default:
                 break;
@@ -734,6 +738,7 @@ public class RunningSettingDialog extends DialogFragment {
             } else {
                 String consoleTitle = getString(R.string.multiplayer_console_id, NetPlayManager.NetPlayGetConsoleId());
                 mSettings.add(new SettingsItem(SettingsItem.SETTING_MULTIPLAYER_ROOM_TEXT, consoleTitle, SettingsItem.TYPE_TEXT, 0));
+                mSettings.add(new SettingsItem(SettingsItem.SETTING_MULTIPLAYER_PUBLIC_ROOMS, "Public Rooms", SettingsItem.TYPE_TEXT, 0));
                 mSettings.add(new SettingsItem(SettingsItem.SETTING_MULTIPLAYER_CREATE_ROOM, R.string.multiplayer_create_room, SettingsItem.TYPE_TEXT, 0));
                 mSettings.add(new SettingsItem(SettingsItem.SETTING_MULTIPLAYER_JOIN_ROOM, R.string.multiplayer_join_room, SettingsItem.TYPE_TEXT, 0));
             }
