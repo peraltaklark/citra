@@ -2,6 +2,7 @@ package org.citra.emu.ui;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Rect;
@@ -30,6 +31,8 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import androidx.fragment.app.Fragment;
 
 import org.citra.emu.NativeLibrary;
@@ -69,12 +72,13 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
     private ProgressBar mProgressBar;
     private Button mBtnDone;
 
-    private LinearLayout mChatLayout;
-    private EditText mChatEditText;
-    private ImageButton mBtnChatSend;
 
     private List<String> mMessageList;
     private Handler mTaskHandler;
+    private ImageButton mChatFab;
+    private RecyclerView mChatRecycler;
+    private ChatAdapter mChatAdapter;
+    private List<String> mChatMessages;
 
     public static EmulationFragment newInstance(String gamePath) {
         Bundle args = new Bundle();
@@ -125,81 +129,48 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
             mInputOverlay.onPressedFeedback();
         });
 
-        mChatLayout = contents.findViewById(R.id.chat_input);
-                // Force check after layout is ready; native state might not be synced yet
-        mChatLayout.post(() -> mChatLayout.setVisibility(
-                NetPlayManager.NetPlayIsJoined() ? View.VISIBLE : View.GONE));
-        mChatLayout.setOnTouchListener(new View.OnTouchListener() {
-            private int prevX, prevY, leftMargin, topMargin;
-            private FrameLayout.LayoutParams params;
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_MOVE:
-                        params.topMargin = topMargin + (int)event.getRawY() - prevY;
-                        v.setLayoutParams(params);
-                        return true;
-                    case MotionEvent.ACTION_UP:
-                        return true;
-                    case MotionEvent.ACTION_DOWN:
-                        prevX = (int) event.getRawX();
-                        prevY = (int) event.getRawY();
-                        params = (FrameLayout.LayoutParams)v.getLayoutParams();
-                        leftMargin = params.leftMargin;
-                        topMargin = params.topMargin;
-                        return true;
-                }
-                return false;
-            }
-        });
-
-        mBtnChatSend = contents.findViewById(R.id.chat_send_button);
-        mBtnChatSend.setOnTouchListener(new View.OnTouchListener() {
+        mChatFab = contents.findViewById(R.id.chat_fab);
+        mChatFab.setOnTouchListener(new View.OnTouchListener() {
             private int prevX, prevY, leftMargin, topMargin;
             private FrameLayout.LayoutParams params;
             private long touchtime;
+            private boolean moved;
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 switch (event.getAction()) {
-                    case MotionEvent.ACTION_MOVE:
-                        params.topMargin = topMargin + (int)event.getRawY() - prevY;
-                        mChatLayout.setLayoutParams(params);
-                        return true;
-                    case MotionEvent.ACTION_UP:
-                        if (System.currentTimeMillis() - touchtime < 100) {
-                            toggleInput();
-                        }
-                        return true;
                     case MotionEvent.ACTION_DOWN:
                         prevX = (int) event.getRawX();
                         prevY = (int) event.getRawY();
-                        params = (FrameLayout.LayoutParams)mChatLayout.getLayoutParams();
+                        params = (FrameLayout.LayoutParams) v.getLayoutParams();
                         leftMargin = params.leftMargin;
                         topMargin = params.topMargin;
                         touchtime = System.currentTimeMillis();
+                        moved = false;
+                        return true;
+                    case MotionEvent.ACTION_MOVE:
+                        int dx = (int) event.getRawX() - prevX;
+                        int dy = (int) event.getRawY() - prevY;
+                        if (Math.abs(dx) > 10 || Math.abs(dy) > 10) moved = true;
+                        params.leftMargin = leftMargin + dx;
+                        params.topMargin = topMargin + dy;
+                        v.setLayoutParams(params);
+                        return true;
+                    case MotionEvent.ACTION_UP:
+                        if (!moved && System.currentTimeMillis() - touchtime < 300) {
+                            showChatInputDialog();
+                        }
                         return true;
                 }
                 return false;
             }
         });
-
-        mChatEditText = contents.findViewById(R.id.chat_text_input);
-        mChatEditText.setOnEditorActionListener((view, action, event) -> {
-            if (action == EditorInfo.IME_ACTION_SEND) {
-                String name = NetPlayManager.GetUsername(getActivity());
-                String msg = view.getText().toString().trim();
-                if (!msg.isEmpty()) {
-                    addNetPlayMessage(name + ": " + msg);
-                    NetPlayManager.NetPlaySendMessage(msg);
-                    view.setText("");
-                    toggleInput();
-                }
-                return true;
-            }
-            return false;
-        });
-
-        return contents;
+        mChatFab.setVisibility(NetPlayManager.NetPlayIsJoined() ? View.VISIBLE : View.GONE);
+        mChatRecycler = contents.findViewById(R.id.chat_recycler);
+        mChatRecycler.setLayoutManager(new LinearLayoutManager(getActivity()));
+        mChatMessages = new ArrayList<>();
+        mChatAdapter = new ChatAdapter(mChatMessages);
+        mChatRecycler.setAdapter(mChatAdapter);
+return contents;
     }
 
     @Override
@@ -249,7 +220,7 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
         super.onResume();
         updateFrameCallbackRefreshRate();
         postFrameCallbackNow();
-        if (mChatLayout != null) mChatLayout.setVisibility(NetPlayManager.NetPlayIsJoined() ? View.VISIBLE : View.GONE);
+        if (mChatFab != null) mChatFab.setVisibility(NetPlayManager.NetPlayIsJoined() ? View.VISIBLE : View.GONE);
 
         if (NativeLibrary.IsRunning()) {
             mState = EmulationState.PAUSED;
@@ -292,23 +263,6 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
         });
     }
 
-    private void toggleInput() {
-        float alpha = mChatLayout.getAlpha();
-        final Activity activity = getActivity();
-        final View decor = activity.getWindow().getDecorView();
-        InputMethodManager imm = activity.getSystemService(InputMethodManager.class);
-        if (alpha > 0.5f) {
-            mChatEditText.clearFocus();
-            mChatEditText.setVisibility(View.GONE);
-            mChatLayout.animate().alpha(0.5f).setDuration(500).start();
-            imm.hideSoftInputFromWindow(decor.getWindowToken(), 0);
-        } else {
-            mChatLayout.animate().alpha(1.0f).setDuration(500).start();
-            mChatEditText.setVisibility(View.VISIBLE);
-            mChatEditText.requestFocus();
-            imm.showSoftInput(mChatEditText, InputMethod.SHOW_FORCED);
-        }
-    }
 
     private void updateFrameCallbackRefreshRate() {
         if (mSurfaceView == null || mSurfaceView.getDisplay() == null) {
@@ -386,32 +340,23 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
     }
 
     public void addNetPlayMessage(String msg) {
-        if (mChatLayout != null) mChatLayout.setVisibility(NetPlayManager.NetPlayIsJoined() ? View.VISIBLE : View.GONE);
-        if (msg.isEmpty()) return;
-
-        if (mMessageList == null) {
-            mMessageList = new ArrayList<>();
-            mTaskHandler = new Handler(getMainLooper());
-        }
-        mMessageList.add(msg);
-        if (mMessageList.size() > 10) {
-            mMessageList.remove(0);
-        }
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < mMessageList.size(); ++i) {
-            sb.append(mMessageList.get(i));
-            sb.append(System.lineSeparator());
-        }
-        mNetPlayMessage.setText(sb.toString());
-        mNetPlayMessage.setVisibility(View.VISIBLE);
-
-        mTaskHandler.removeCallbacksAndMessages(null);
-        mTaskHandler.postDelayed(() -> {
-            mNetPlayMessage.setVisibility(View.INVISIBLE);
-            if (mMessageList != null) {
-                mMessageList.clear();
+        if (mChatFab != null)
+            mChatFab.setVisibility(NetPlayManager.NetPlayIsJoined() ? View.VISIBLE : View.GONE);
+        if (mChatRecycler != null) {
+            mChatRecycler.setVisibility(View.VISIBLE);
+            mChatMessages.add(msg);
+            mChatAdapter.notifyItemInserted(mChatMessages.size() - 1);
+            mChatRecycler.scrollToPosition(mChatMessages.size() - 1);
+            // Auto-hide after 6 seconds
+            if (mTaskHandler != null) {
+                mTaskHandler.removeCallbacksAndMessages(null);
+                mTaskHandler.postDelayed(() -> {
+                    if (mChatRecycler != null) mChatRecycler.setVisibility(View.GONE);
+                    if (mChatMessages != null) mChatMessages.clear();
+                    if (mChatAdapter != null) mChatAdapter.notifyDataSetChanged();
+                }, 6000);
             }
-        }, 6 * 1000);
+        }
     }
 
     public void updateProgress(String name, long written, long total) {
@@ -436,4 +381,55 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
     }
 
     private enum EmulationState { STOPPED, RUNNING, PAUSED }
+    private void showChatInputDialog() {
+        final Activity activity = getActivity();
+        if (activity == null) return;
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(activity);
+        final EditText input = new EditText(activity);
+        input.setHint(R.string.multiplayer_chat_input_hint);
+        builder.setTitle("Send Chat Message");
+        builder.setView(input);
+        builder.setPositiveButton("Send", (dialog, which) -> {
+            String msg = input.getText().toString().trim();
+            if (!msg.isEmpty()) {
+                String name = NetPlayManager.GetUsername(activity);
+                addNetPlayMessage(name + ": " + msg);
+                NetPlayManager.NetPlaySendMessage(msg);
+            }
+        });
+        builder.setNegativeButton("Cancel", null);
+        builder.show();
+    }
+
+
+    private class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
+        private List<String> messages;
+
+        ChatAdapter(List<String> messages) { this.messages = messages; }
+
+        @NonNull @Override
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View v = LayoutInflater.from(parent.getContext())
+                      .inflate(R.layout.chat_message_item, parent, false);
+            return new ViewHolder(v);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+            holder.textView.setText(messages.get(position));
+        }
+
+        @Override
+        public int getItemCount() { return messages.size(); }
+
+        class ViewHolder extends RecyclerView.ViewHolder {
+            TextView textView;
+            ViewHolder(View itemView) {
+                super(itemView);
+                textView = itemView.findViewById(R.id.chat_message_text);
+            }
+        }
+    }
+
 }
