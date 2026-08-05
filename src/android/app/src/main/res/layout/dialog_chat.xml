@@ -4,18 +4,21 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="8dp"
-    android:background="#E0000000">
+    android:background="#FFFFFF">
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/dialog_chat_recycler"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_weight="1"
+        android:background="#F5F5F5" />
 
     <LinearLayout
         android:orientation="horizontal"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:background="#EEEEEE"
+        android:padding="4dp">
 
         <EditText
             android:id="@+id/dialog_chat_input"
@@ -23,8 +26,8 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:hint="@string/multiplayer_chat_input_hint"
-            android:textColor="#FFFFFF"
-            android:textColorHint="#AAAAAA" />
+            android:textColor="#000000"
+            android:textColorHint="#888888" />
 
         <Button
             android:id="@+id/dialog_chat_send"
