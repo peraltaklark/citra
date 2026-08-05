@@ -152,7 +152,7 @@ NetPlayStatus NetPlayCreateRoom(const std::string& ipaddress, int port,
     return NetPlayStatus::NO_ERROR;
 }
 
-NetPlayStatus NetPlayJoinRoom(const std::string& ipaddress, int port, const std::string& username) {
+NetPlayStatus NetPlayJoinRoom(const std::string& ipaddress, int port, const std::string& username, const std::string& password) {
     auto member = Network::GetRoomMember().lock();
     if (!member) {
         return NetPlayStatus::NETWORK_ERROR;
@@ -163,7 +163,7 @@ NetPlayStatus NetPlayJoinRoom(const std::string& ipaddress, int port, const std:
     }
 
     std::string console = Service::CFG::GetConsoleIdHash(Core::System::GetInstance());
-    member->Join(username, console, ipaddress.c_str(), port);
+    member->Join(username, console, ipaddress.c_str(), port, 0, NoPreferredMac, password);
     return NetPlayStatus::NO_ERROR;
 }
 
