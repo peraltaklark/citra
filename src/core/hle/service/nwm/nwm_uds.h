@@ -6,6 +6,7 @@
 
 #include <array>
 #include <atomic>
+#include <chrono>
 #include <cstddef>
 #include <deque>
 #include <list>
@@ -460,6 +461,18 @@ private:
                           const u8* network_info_buffer, std::size_t network_info_size,
                           u8 connection_type, std::vector<u8> passphrase);
 
+        // Anti-disconnection functions
+    void SendHeartbeat();
+    void CheckConnectionHealth();
+    void HandleConnectionLost();
+    void AttemptReconnection();
+    void CleanupTimedOutClients();
+    void ScheduleHeartbeat();
+    void ScheduleHealthCheck();
+    void HeartbeatCallback(u64 userdata, s64 cycles_late);
+    void HealthCheckCallback(u64 userdata, s64 cycles_late);
+    void ReconnectCallback(u64 userdata, s64 cycles_late);
+
     void BeaconBroadcastCallback(u64 userdata, s64 cycles_late);
 
     /**
@@ -554,12 +567,20 @@ private:
     struct Node {
         bool connected;
         u16 node_id;
+        std::chrono::steady_clock::time_point last_activity;
     };
 
     std::map<MacAddress, Node> node_map;
 
     // Event that will generate and send the 802.11 beacon frames.
     Core::TimingEventType* beacon_broadcast_event;
+    Core::TimingEventType* heartbeat_event = nullptr;
+    Core::TimingEventType* health_check_event = nullptr;
+    Core::TimingEventType* reconnect_event = nullptr;
+
+    // Anti-disconnection state
+    std::chrono::steady_clock::time_point last_packet_time;
+    int reconnect_attempts = 0;
 
     // Callback identifier for the OnWifiPacketReceived event.
     Network::RoomMember::CallbackHandle<Network::WifiPacket> wifi_packet_received;
