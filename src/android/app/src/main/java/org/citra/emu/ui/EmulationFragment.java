@@ -3,10 +3,8 @@ package org.citra.emu.ui;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.res.Configuration;
-import android.graphics.Bitmap;
-import android.graphics.Rect;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Process;
@@ -20,13 +18,11 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.view.inputmethod.EditorInfo;
-import android.view.inputmethod.InputMethod;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
-import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
@@ -52,10 +48,6 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
     private static final long EMULATION_FRAME_INTERVAL_NS = 1_000_000_000L / 60L;
     private static final long FRAME_CALLBACK_SLACK_NS = 1_000_000L;
 
-    private static final int TASK_PROGRESS_BAIDUOCR0 = 0;
-    private static final int TASK_PROGRESS_BAIDUOCR1 = 1;
-    private static final int TASK_PROGRESS_TRANSLATE = 2;
-
     private String mPath;
     private Surface mSurface;
     private SurfaceView mSurfaceView;
@@ -68,17 +60,17 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
     private ResizeOverlay mResizeOverlayTop;
     private ResizeOverlay mResizeOverlayBottom;
     private TextView mTranslateText;
-    private TextView mNetPlayMessage;
     private ProgressBar mProgressBar;
     private Button mBtnDone;
 
-
-    private List<String> mMessageList;
     private Handler mTaskHandler;
     private ImageButton mChatFab;
     private RecyclerView mChatRecycler;
     private ChatAdapter mChatAdapter;
     private List<String> mChatMessages;
+
+    private ChatDialog mChatDialog;
+    private ChatDialogAdapter mChatDialogAdapter;
 
     public static EmulationFragment newInstance(String gamePath) {
         Bundle args = new Bundle();
@@ -108,7 +100,6 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
 
         mProgressBar = contents.findViewById(R.id.running_progress);
         mTranslateText = contents.findViewById(R.id.translate_text);
-        mNetPlayMessage = contents.findViewById(R.id.netplay_message);
         mInputOverlay = contents.findViewById(R.id.surface_input_overlay);
         mResizeOverlayTop = contents.findViewById(R.id.resize_overlay_top);
         mResizeOverlayTop.setDesiredRatio(400 / 240.0f);
@@ -129,6 +120,7 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
             mInputOverlay.onPressedFeedback();
         });
 
+        // Chat FAB (draggable)
         mChatFab = contents.findViewById(R.id.chat_fab);
         mChatFab.setOnTouchListener(new View.OnTouchListener() {
             private int prevX, prevY, leftMargin, topMargin;
@@ -165,12 +157,15 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
             }
         });
         mChatFab.setVisibility(NetPlayManager.NetPlayIsJoined() ? View.VISIBLE : View.GONE);
+
+        // Chat overlay RecyclerView
         mChatRecycler = contents.findViewById(R.id.chat_recycler);
         mChatRecycler.setLayoutManager(new LinearLayoutManager(getActivity()));
         mChatMessages = new ArrayList<>();
         mChatAdapter = new ChatAdapter(mChatMessages);
         mChatRecycler.setAdapter(mChatAdapter);
-return contents;
+
+        return contents;
     }
 
     @Override
@@ -220,7 +215,8 @@ return contents;
         super.onResume();
         updateFrameCallbackRefreshRate();
         postFrameCallbackNow();
-        if (mChatFab != null) mChatFab.setVisibility(NetPlayManager.NetPlayIsJoined() ? View.VISIBLE : View.GONE);
+        if (mChatFab != null)
+            mChatFab.setVisibility(NetPlayManager.NetPlayIsJoined() ? View.VISIBLE : View.GONE);
 
         if (NativeLibrary.IsRunning()) {
             mState = EmulationState.PAUSED;
@@ -262,7 +258,6 @@ return contents;
             }
         });
     }
-
 
     private void updateFrameCallbackRefreshRate() {
         if (mSurfaceView == null || mSurfaceView.getDisplay() == null) {
@@ -344,18 +339,23 @@ return contents;
             mChatFab.setVisibility(NetPlayManager.NetPlayIsJoined() ? View.VISIBLE : View.GONE);
         if (mChatRecycler != null) {
             mChatRecycler.setVisibility(View.VISIBLE);
-            mChatMessages.add(msg);
-            mChatAdapter.notifyItemInserted(mChatMessages.size() - 1);
-            mChatRecycler.scrollToPosition(mChatMessages.size() - 1);
-            // Auto-hide after 6 seconds
-            if (mTaskHandler != null) {
-                mTaskHandler.removeCallbacksAndMessages(null);
-                mTaskHandler.postDelayed(() -> {
-                    if (mChatRecycler != null) mChatRecycler.setVisibility(View.GONE);
-                    if (mChatMessages != null) mChatMessages.clear();
-                    if (mChatAdapter != null) mChatAdapter.notifyDataSetChanged();
-                }, 6000);
+            if (mChatMessages.size() >= 8) {
+                mChatMessages.remove(0);
             }
+            mChatMessages.add(msg);
+            mChatAdapter.notifyDataSetChanged();
+            if (mChatDialogAdapter != null) {
+                mChatDialogAdapter.notifyDataSetChanged();
+            }
+            mChatRecycler.scrollToPosition(mChatMessages.size() - 1);
+            // Auto-hide overlay after 6 seconds
+            if (mTaskHandler == null) mTaskHandler = new Handler(getMainLooper());
+            mTaskHandler.removeCallbacksAndMessages(null);
+            mTaskHandler.postDelayed(() -> {
+                if (mChatRecycler != null) mChatRecycler.setVisibility(View.GONE);
+                if (mChatMessages != null) mChatMessages.clear();
+                if (mChatAdapter != null) mChatAdapter.notifyDataSetChanged();
+            }, 6000);
         }
     }
 
@@ -380,28 +380,74 @@ return contents;
         mState = EmulationState.RUNNING;
     }
 
-    private enum EmulationState { STOPPED, RUNNING, PAUSED }
     private void showChatInputDialog() {
-        final Activity activity = getActivity();
-        if (activity == null) return;
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(activity);
-        final EditText input = new EditText(activity);
-        input.setHint(R.string.multiplayer_chat_input_hint);
-        builder.setTitle("Send Chat Message");
-        builder.setView(input);
-        builder.setPositiveButton("Send", (dialog, which) -> {
-            String msg = input.getText().toString().trim();
-            if (!msg.isEmpty()) {
-                String name = NetPlayManager.GetUsername(activity);
-                addNetPlayMessage(name + ": " + msg);
-                NetPlayManager.NetPlaySendMessage(msg);
-            }
-        });
-        builder.setNegativeButton("Cancel", null);
-        builder.show();
+        if (mChatDialog == null) {
+            mChatDialog = new ChatDialog(getActivity());
+        }
+        mChatDialogAdapter = new ChatDialogAdapter(mChatMessages);
+        mChatDialog.setAdapter(mChatDialogAdapter);
+        mChatDialog.show();
     }
 
+    private class ChatDialog extends android.app.Dialog {
+        private RecyclerView recycler;
+        private EditText input;
+        private Button send;
+
+        ChatDialog(Context context) {
+            super(context);
+            setContentView(R.layout.dialog_chat);
+            recycler = findViewById(R.id.dialog_chat_recycler);
+            recycler.setLayoutManager(new LinearLayoutManager(context));
+            input = findViewById(R.id.dialog_chat_input);
+            send = findViewById(R.id.dialog_chat_send);
+            send.setOnClickListener(v -> {
+                String msg = input.getText().toString().trim();
+                if (!msg.isEmpty()) {
+                    String name = NetPlayManager.GetUsername(getActivity());
+                    addNetPlayMessage(name + ": " + msg);
+                    NetPlayManager.NetPlaySendMessage(msg);
+                    input.setText("");
+                }
+            });
+        }
+
+        void setAdapter(ChatDialogAdapter adapter) {
+            recycler.setAdapter(adapter);
+            if (adapter.getItemCount() > 0) {
+                recycler.scrollToPosition(adapter.getItemCount() - 1);
+            }
+        }
+    }
+
+    private class ChatDialogAdapter extends RecyclerView.Adapter<ChatDialogAdapter.ViewHolder> {
+        private List<String> messages;
+
+        ChatDialogAdapter(List<String> messages) { this.messages = messages; }
+
+        @NonNull @Override
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View v = LayoutInflater.from(parent.getContext())
+                      .inflate(android.R.layout.simple_list_item_1, parent, false);
+            return new ViewHolder(v);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+            holder.textView.setText(messages.get(position));
+        }
+
+        @Override
+        public int getItemCount() { return messages.size(); }
+
+        class ViewHolder extends RecyclerView.ViewHolder {
+            TextView textView;
+            ViewHolder(View itemView) {
+                super(itemView);
+                textView = itemView.findViewById(android.R.id.text1);
+            }
+        }
+    }
 
     private class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
         private List<String> messages;
@@ -432,4 +478,5 @@ return contents;
         }
     }
 
+    private enum EmulationState { STOPPED, RUNNING, PAUSED }
 }
