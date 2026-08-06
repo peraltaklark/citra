@@ -2,6 +2,8 @@ package org.citra.emu.ui;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.LayoutInflater;
@@ -13,6 +15,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -27,12 +30,15 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 public class RoomBrowserDialog {
 
+    private static final String PREF_LAST_ROOM = "last_joined_room_address";
+
     private static String getWebApiUrl() {
-        // Default fallback URL
         String defaultUrl = "http://88.198.47.46:5000";
         try {
             File configFile = new File(CitraDirectory.getConfigFile());
@@ -58,9 +64,7 @@ public class RoomBrowserDialog {
                 }
             }
             reader.close();
-        } catch (Exception e) {
-            // fall through to default
-        }
+        } catch (Exception e) { }
         return defaultUrl;
     }
 
@@ -120,15 +124,15 @@ public class RoomBrowserDialog {
             recyclerView.setVisibility(View.GONE);
             emptyText.setVisibility(View.GONE);
             refreshButton.setEnabled(false);
-            fetchRooms(adapter, recyclerView, emptyText, loadingText, refreshButton);
+            fetchRooms(activity, adapter, recyclerView, emptyText, loadingText, refreshButton);
         });
 
-        fetchRooms(adapter, recyclerView, emptyText, loadingText, refreshButton);
+        fetchRooms(activity, adapter, recyclerView, emptyText, loadingText, refreshButton);
     }
 
-    private static void fetchRooms(final RoomAdapter adapter, final RecyclerView recyclerView,
-                                   final TextView emptyText, final TextView loadingText,
-                                   final Button refreshButton) {
+    private static void fetchRooms(final Activity activity, final RoomAdapter adapter,
+                                   final RecyclerView recyclerView, final TextView emptyText,
+                                   final TextView loadingText, final Button refreshButton) {
         new Thread(() -> {
             List<RoomInfo> rooms = new ArrayList<>();
             try {
@@ -153,6 +157,17 @@ public class RoomBrowserDialog {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
+            }
+
+            // Move last joined room to top
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(activity);
+            final String lastAddress = prefs.getString(PREF_LAST_ROOM, "");
+            if (!lastAddress.isEmpty()) {
+                Collections.sort(rooms, (a, b) -> {
+                    if (a.address.equals(lastAddress)) return -1;
+                    if (b.address.equals(lastAddress)) return 1;
+                    return 0;
+                });
             }
 
             final List<RoomInfo> finalRooms = rooms;
@@ -216,7 +231,6 @@ public class RoomBrowserDialog {
                 }
 
                 if (room.hasPassword) {
-                    // Prompt for password
                     EditText passwordInput = new EditText(activity);
                     passwordInput.setHint("Password");
                     new AlertDialog.Builder(activity)
@@ -238,6 +252,10 @@ public class RoomBrowserDialog {
         private void joinRoom(Activity activity, AlertDialog dialog, RoomInfo room, String password) {
             String username = NetPlayManager.GetUsername(activity);
             if (NetPlayManager.NetPlayJoinRoom(room.address, room.port, username, password) == 0) {
+                // Save last joined room address
+                SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(activity);
+                prefs.edit().putString(PREF_LAST_ROOM, room.address).apply();
+                // Save room address and port for display
                 NetPlayManager.SetRoomAddress(activity, room.address);
                 NetPlayManager.SetRoomPort(activity, String.valueOf(room.port));
                 Toast.makeText(activity, R.string.multiplayer_join_room_success, Toast.LENGTH_SHORT).show();
