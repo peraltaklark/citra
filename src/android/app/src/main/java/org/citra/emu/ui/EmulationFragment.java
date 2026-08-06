@@ -120,7 +120,17 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
                 recycler.scrollToPosition(adapter.getItemCount() - 1);
             }
         }
+
+    void scrollToBottom() {
+        if (recycler != null && recycler.getAdapter() != null
+                && recycler.getAdapter().getItemCount() > 0) {
+            recycler.scrollToPosition(recycler.getAdapter().getItemCount() - 1);
+        }
     }
+    }
+
+
+
 
     private class ChatDialogAdapter extends RecyclerView.Adapter<ChatDialogAdapter.ViewHolder> {
         private List<ChatMessage> messages;
@@ -477,6 +487,9 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
             mChatHistory.add(new ChatMessage(msg));
             if (mChatDialogAdapter != null) {
                 mChatDialogAdapter.notifyDataSetChanged();
+                if (mChatDialog != null && mChatDialog.isShowing()) {
+                    mChatDialog.scrollToBottom();
+                }
             }
 
             // Auto-hide overlay after 6 seconds
