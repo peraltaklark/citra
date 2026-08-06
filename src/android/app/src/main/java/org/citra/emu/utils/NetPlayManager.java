@@ -114,28 +114,28 @@ public class NetPlayManager {
         return prefs.getString("NetPlayUsername", name);
     }
 
-    private static void SetUsername(final Activity activity, final String name) {
+        public static void SetUsername(final Activity activity, final String name) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(activity);
         prefs.edit().putString("NetPlayUsername", name).apply();
     }
 
-    private static String GetRoomAddress(final Activity activity) {
+        public static String GetRoomAddress(final Activity activity) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(activity);
         String address = GetIpAddressByWifi(activity);
         return prefs.getString("NetPlayRoomAddress", address);
     }
 
-    private static void SetRoomAddress(final Activity activity, final String address) {
+        public static void SetRoomAddress(final Activity activity, final String address) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(activity);
         prefs.edit().putString("NetPlayRoomAddress", address).apply();
     }
 
-    private static String GetRoomPort(final Activity activity) {
+        public static String GetRoomPort(final Activity activity) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(activity);
         return prefs.getString("NetPlayRoomPort", "24872");
     }
 
-    private static void SetRoomPort(final Activity activity, final String port) {
+        public static void SetRoomPort(final Activity activity, final String port) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(activity);
         prefs.edit().putString("NetPlayRoomPort", port).apply();
     }
