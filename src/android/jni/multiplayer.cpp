@@ -242,7 +242,11 @@ void NetPlayLeaveRoom() {
 }
 
 std::string NetPlayGetConsoleId() {
-    auto cfg = Service::CFG::GetModule(Core::System::GetInstance());
+    auto& system = Core::System::GetInstance();
+    if (!system.IsPoweredOn()) {
+        return "Console ID unavailable";
+    }
+    auto cfg = Service::CFG::GetModule(system);
     u64 console_id = cfg->GetConsoleUniqueId();
     return fmt::format("{:016X}", console_id);
 }
