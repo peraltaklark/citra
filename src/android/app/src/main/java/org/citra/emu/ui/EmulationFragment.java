@@ -452,7 +452,7 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
         @NonNull @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             View v = LayoutInflater.from(parent.getContext())
-                      .inflate(android.R.layout.simple_list_item_1, parent, false);
+                      .inflate(R.layout.chat_dialog_item, parent, false);
             return new ViewHolder(v);
         }
 
@@ -460,7 +460,6 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             holder.textView.setText(messages.get(position));
             // Force white text for visibility on dark background
-            holder.textView.setTextColor(0xFFFFFFFF);
         }
 
         @Override
@@ -470,7 +469,7 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
             TextView textView;
             ViewHolder(View itemView) {
                 super(itemView);
-                textView = itemView.findViewById(android.R.id.text1);
+                textView = itemView.findViewById(R.id.chat_dialog_text);
             }
         }
     }
