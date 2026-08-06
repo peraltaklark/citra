@@ -238,6 +238,8 @@ public class RoomBrowserDialog {
         private void joinRoom(Activity activity, AlertDialog dialog, RoomInfo room, String password) {
             String username = NetPlayManager.GetUsername(activity);
             if (NetPlayManager.NetPlayJoinRoom(room.address, room.port, username, password) == 0) {
+                NetPlayManager.SetRoomAddress(activity, room.address);
+                NetPlayManager.SetRoomPort(activity, String.valueOf(room.port));
                 Toast.makeText(activity, R.string.multiplayer_join_room_success, Toast.LENGTH_SHORT).show();
                 dialog.dismiss();
             } else {
