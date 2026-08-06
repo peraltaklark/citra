@@ -753,8 +753,8 @@ public class RunningSettingDialog extends DialogFragment {
             if (infos.length > 0) {
                 String roomTitle = getString(R.string.multiplayer_room_title, infos[0]);
                 mSettings.add(new SettingsItem(SettingsItem.SETTING_MULTIPLAYER_ROOM_TEXT, roomTitle, SettingsItem.TYPE_TEXT, 0));
-                String roomAddress = NetPlayManager.GetRoomAddress(activity);
-                String roomPort = NetPlayManager.GetRoomPort(activity);
+                String roomAddress = NetPlayManager.GetRoomAddress(getActivity());
+                String roomPort = NetPlayManager.GetRoomPort(getActivity());
                 mSettings.add(new SettingsItem(SettingsItem.SETTING_MULTIPLAYER_ROOM_TEXT, roomAddress + ":" + roomPort, SettingsItem.TYPE_TEXT, 0));
                 if (false && NetPlayManager.NetPlayIsHostedRoom()) {
                     for (int i = 1; i < infos.length; ++i) {
