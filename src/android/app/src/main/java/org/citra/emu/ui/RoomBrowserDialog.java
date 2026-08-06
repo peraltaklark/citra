@@ -2,7 +2,6 @@ package org.citra.emu.ui;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Handler;
 import android.os.Looper;
@@ -13,6 +12,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.ToggleButton;
 
 import androidx.annotation.NonNull;
 import androidx.preference.PreferenceManager;
@@ -31,7 +31,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
 public class RoomBrowserDialog {
@@ -100,6 +99,9 @@ public class RoomBrowserDialog {
                 this.players = 0;
             }
         }
+
+        boolean isEmpty() { return players == 0; }
+        boolean isFull() { return players >= maxPlayers; }
     }
 
     public static void ShowRoomBrowser(final Activity activity) {
@@ -114,27 +116,76 @@ public class RoomBrowserDialog {
         TextView emptyText = rootView.findViewById(R.id.empty_text);
         TextView loadingText = rootView.findViewById(R.id.loading_text);
         Button refreshButton = rootView.findViewById(R.id.btn_refresh);
+        ToggleButton btnHideEmpty = rootView.findViewById(R.id.btn_hide_empty);
+        ToggleButton btnHideFull = rootView.findViewById(R.id.btn_hide_full);
+        ToggleButton btnHideLocked = rootView.findViewById(R.id.btn_hide_locked);
 
         recyclerView.setLayoutManager(new LinearLayoutManager(activity));
         RoomAdapter adapter = new RoomAdapter(activity, dialog);
         recyclerView.setAdapter(adapter);
+
+        // Store full list for filtering
+        final List<RoomInfo> allRooms = new ArrayList<>();
+        final boolean[] filters = new boolean[3]; // [hideEmpty, hideFull, hideLocked]
+
+        Runnable applyFilters = () -> {
+            List<RoomInfo> filtered = new ArrayList<>();
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(activity);
+            String lastAddress = prefs.getString(PREF_LAST_ROOM, "");
+            RoomInfo lastRoom = null;
+
+            for (RoomInfo r : allRooms) {
+                if (filters[0] && r.isEmpty()) continue;
+                if (filters[1] && r.isFull()) continue;
+                if (filters[2] && r.hasPassword) continue;
+                filtered.add(r);
+            }
+
+            // Pin last visited to top
+            if (!lastAddress.isEmpty()) {
+                for (int i = 0; i < filtered.size(); i++) {
+                    if (filtered.get(i).address.equals(lastAddress)) {
+                        lastRoom = filtered.remove(i);
+                        break;
+                    }
+                }
+            }
+
+            if (lastRoom != null) {
+                filtered.add(0, lastRoom);
+            }
+
+            if (filtered.isEmpty()) {
+                emptyText.setVisibility(View.VISIBLE);
+                recyclerView.setVisibility(View.GONE);
+            } else {
+                emptyText.setVisibility(View.GONE);
+                recyclerView.setVisibility(View.VISIBLE);
+                adapter.setRooms(filtered);
+            }
+        };
+
+        btnHideEmpty.setOnCheckedChangeListener((v, checked) -> { filters[0] = checked; applyFilters.run(); });
+        btnHideFull.setOnCheckedChangeListener((v, checked) -> { filters[1] = checked; applyFilters.run(); });
+        btnHideLocked.setOnCheckedChangeListener((v, checked) -> { filters[2] = checked; applyFilters.run(); });
 
         refreshButton.setOnClickListener(v -> {
             loadingText.setVisibility(View.VISIBLE);
             recyclerView.setVisibility(View.GONE);
             emptyText.setVisibility(View.GONE);
             refreshButton.setEnabled(false);
-            fetchRooms(activity, adapter, recyclerView, emptyText, loadingText, refreshButton);
+            fetchRooms(activity, allRooms, adapter, recyclerView, emptyText, loadingText, refreshButton, applyFilters);
         });
 
-        fetchRooms(activity, adapter, recyclerView, emptyText, loadingText, refreshButton);
+        fetchRooms(activity, allRooms, adapter, recyclerView, emptyText, loadingText, refreshButton, applyFilters);
     }
 
-    private static void fetchRooms(final Activity activity, final RoomAdapter adapter,
-                                   final RecyclerView recyclerView, final TextView emptyText,
-                                   final TextView loadingText, final Button refreshButton) {
+    private static void fetchRooms(final Activity activity, final List<RoomInfo> allRooms,
+                                   final RoomAdapter adapter, final RecyclerView recyclerView,
+                                   final TextView emptyText, final TextView loadingText,
+                                   final Button refreshButton, final Runnable applyFilters) {
         new Thread(() -> {
-            List<RoomInfo> rooms = new ArrayList<>();
+            allRooms.clear();
             try {
                 String apiUrl = getWebApiUrl() + "/lobby";
                 WebRequestHandler handler = WebRequestHandler.Create(apiUrl);
@@ -151,7 +202,7 @@ public class RoomBrowserDialog {
                         JSONObject json = new JSONObject(response);
                         JSONArray roomsArray = json.getJSONArray("rooms");
                         for (int i = 0; i < roomsArray.length(); i++) {
-                            rooms.add(new RoomInfo(roomsArray.getJSONObject(i)));
+                            allRooms.add(new RoomInfo(roomsArray.getJSONObject(i)));
                         }
                     }
                 }
@@ -159,29 +210,10 @@ public class RoomBrowserDialog {
                 e.printStackTrace();
             }
 
-            // Move last joined room to top
-            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(activity);
-            final String lastAddress = prefs.getString(PREF_LAST_ROOM, "");
-            if (!lastAddress.isEmpty()) {
-                Collections.sort(rooms, (a, b) -> {
-                    if (a.address.equals(lastAddress)) return -1;
-                    if (b.address.equals(lastAddress)) return 1;
-                    return 0;
-                });
-            }
-
-            final List<RoomInfo> finalRooms = rooms;
             new Handler(Looper.getMainLooper()).post(() -> {
                 loadingText.setVisibility(View.GONE);
                 refreshButton.setEnabled(true);
-                if (finalRooms.isEmpty()) {
-                    emptyText.setVisibility(View.VISIBLE);
-                    recyclerView.setVisibility(View.GONE);
-                } else {
-                    emptyText.setVisibility(View.GONE);
-                    recyclerView.setVisibility(View.VISIBLE);
-                    adapter.setRooms(finalRooms);
-                }
+                applyFilters.run();
             });
         }).start();
     }
@@ -252,10 +284,8 @@ public class RoomBrowserDialog {
         private void joinRoom(Activity activity, AlertDialog dialog, RoomInfo room, String password) {
             String username = NetPlayManager.GetUsername(activity);
             if (NetPlayManager.NetPlayJoinRoom(room.address, room.port, username, password) == 0) {
-                // Save last joined room address
                 SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(activity);
                 prefs.edit().putString(PREF_LAST_ROOM, room.address).apply();
-                // Save room address and port for display
                 NetPlayManager.SetRoomAddress(activity, room.address);
                 NetPlayManager.SetRoomPort(activity, String.valueOf(room.port));
                 Toast.makeText(activity, R.string.multiplayer_join_room_success, Toast.LENGTH_SHORT).show();
@@ -266,9 +296,7 @@ public class RoomBrowserDialog {
         }
 
         @Override
-        public int getItemCount() {
-            return rooms.size();
-        }
+        public int getItemCount() { return rooms.size(); }
 
         class ViewHolder extends RecyclerView.ViewHolder {
             TextView roomName, roomOwner, roomGame, roomPlayers;
