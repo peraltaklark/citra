@@ -40,6 +40,9 @@ import org.citra.emu.utils.NetPlayManager;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Date;
+import java.text.SimpleDateFormat;
+import java.util.Locale;
 
 import static android.os.Looper.getMainLooper;
 
@@ -69,11 +72,120 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
     private RecyclerView mChatRecycler;
     private ChatAdapter mChatAdapter;
     private List<String> mChatMessages;           // overlay list (max 8, cleared on hide)
-    private List<ChatMessage> mChatHistory;            // full history list (never auto-cleared)
+    private List<ChatMessage> mChatHistory;       // full history list (never auto-cleared)
 
     private ChatDialog mChatDialog;
     private ChatDialogAdapter mChatDialogAdapter;
 
+    // ──── Inner classes ────────────────────────────────────────────────
+    private static class ChatMessage {
+        String text;
+        String timestamp;
+
+        ChatMessage(String text) {
+            this.text = text;
+            this.timestamp = new SimpleDateFormat("HH:mm", Locale.getDefault())
+                    .format(new Date());
+        }
+    }
+
+    private class ChatDialog extends android.app.Dialog {
+        private RecyclerView recycler;
+        private EditText input;
+        private Button send;
+
+        ChatDialog(Context context) {
+            super(context);
+            setContentView(R.layout.dialog_chat);
+            recycler = findViewById(R.id.dialog_chat_recycler);
+            LinearLayoutManager layoutManager = new LinearLayoutManager(context);
+            layoutManager.setStackFromEnd(true);
+            recycler.setLayoutManager(layoutManager);
+            input = findViewById(R.id.dialog_chat_input);
+            send = findViewById(R.id.dialog_chat_send);
+            send.setOnClickListener(v -> {
+                String msg = input.getText().toString().trim();
+                if (!msg.isEmpty()) {
+                    String name = NetPlayManager.GetUsername(getActivity());
+                    addNetPlayMessage(name + ": " + msg);
+                    NetPlayManager.NetPlaySendMessage(msg);
+                    input.setText("");
+                }
+            });
+        }
+
+        void setAdapter(ChatDialogAdapter adapter) {
+            recycler.setAdapter(adapter);
+            if (adapter.getItemCount() > 0) {
+                recycler.scrollToPosition(adapter.getItemCount() - 1);
+            }
+        }
+    }
+
+    private class ChatDialogAdapter extends RecyclerView.Adapter<ChatDialogAdapter.ViewHolder> {
+        private List<ChatMessage> messages;
+
+        ChatDialogAdapter(List<ChatMessage> messages) { this.messages = messages; }
+
+        @NonNull @Override
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View v = LayoutInflater.from(parent.getContext())
+                      .inflate(R.layout.chat_dialog_item, parent, false);
+            return new ViewHolder(v);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+            ChatMessage msg = messages.get(position);
+            holder.textView.setText(msg.text);
+            holder.timestampView.setText(msg.timestamp);
+        }
+
+        @Override
+        public int getItemCount() { return messages.size(); }
+
+        class ViewHolder extends RecyclerView.ViewHolder {
+            TextView textView, timestampView;
+            ViewHolder(View itemView) {
+                super(itemView);
+                textView = itemView.findViewById(R.id.chat_dialog_text);
+                timestampView = itemView.findViewById(R.id.chat_dialog_timestamp);
+            }
+        }
+    }
+
+    private class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
+        private List<String> messages;
+
+        ChatAdapter(List<String> messages) { this.messages = messages; }
+
+        @NonNull @Override
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View v = LayoutInflater.from(parent.getContext())
+                      .inflate(R.layout.chat_message_item, parent, false);
+            return new ViewHolder(v);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+            holder.textView.setText(messages.get(position));
+        }
+
+        @Override
+        public int getItemCount() { return messages.size(); }
+
+        class ViewHolder extends RecyclerView.ViewHolder {
+            TextView textView;
+            ViewHolder(View itemView) {
+                super(itemView);
+                textView = itemView.findViewById(R.id.chat_message_text);
+            }
+        }
+    }
+
+    private enum EmulationState { STOPPED, RUNNING, PAUSED }
+
+    // ──── Fragment lifecycle ───────────────────────────────────────────
     public static EmulationFragment newInstance(String gamePath) {
         Bundle args = new Bundle();
         args.putString(KEY_GAMEPATH, gamePath);
@@ -412,123 +524,4 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
         mChatDialog.setAdapter(mChatDialogAdapter);
         mChatDialog.show();
     }
-
-    private static class ChatMessage {
-        String text;
-        String timestamp;
-
-        ChatMessage(String text) {
-            this.text = text;
-            this.timestamp = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
-                    .format(new java.util.Date());
-        }
-    }
-
-    private class ChatDialog extends android.app.Dialog {
-        private RecyclerView recycler;
-        private EditText input;
-        private Button send;
-
-        ChatDialog(Context context) {
-            super(context);
-            setContentView(R.layout.dialog_chat);
-            recycler = findViewById(R.id.dialog_chat_recycler);
-            LinearLayoutManager layoutManager = new LinearLayoutManager(context);
-            layoutManager.setStackFromEnd(true);
-            recycler.setLayoutManager(layoutManager);
-            input = findViewById(R.id.dialog_chat_input);
-            send = findViewById(R.id.dialog_chat_send);
-            send.setOnClickListener(v -> {
-                String msg = input.getText().toString().trim();
-                if (!msg.isEmpty()) {
-                    String name = NetPlayManager.GetUsername(getActivity());
-                    addNetPlayMessage(name + ": " + msg);
-                    NetPlayManager.NetPlaySendMessage(msg);
-                    input.setText("");
-                }
-            });
-        }
-
-        void setAdapter(ChatDialogAdapter adapter) {
-            recycler.setAdapter(adapter);
-            if (adapter.getItemCount() > 0) {
-                recycler.scrollToPosition(adapter.getItemCount() - 1);
-            }
-        }
-    }
-
-    private static class ChatMessage {
-        String text;
-        String timestamp;
-
-        ChatMessage(String text) {
-            this.text = text;
-            this.timestamp = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
-                    .format(new java.util.Date());
-        }
-    }
-
-    private class ChatDialogAdapter extends RecyclerView.Adapter<ChatDialogAdapter.ViewHolder> {
-        private List<ChatMessage> messages;
-
-        ChatDialogAdapter(List<ChatMessage> messages) { this.messages = messages; }
-
-        @NonNull @Override
-        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            View v = LayoutInflater.from(parent.getContext())
-                      .inflate(R.layout.chat_dialog_item, parent, false);
-            return new ViewHolder(v);
-        }
-
-        @Override
-        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            ChatMessage msg = messages.get(position);
-            holder.textView.setText(msg.text);
-            holder.timestampView.setText(msg.timestamp);
-            // Force white text for visibility on dark background
-        }
-
-        @Override
-        public int getItemCount() { return messages.size(); }
-
-        class ViewHolder extends RecyclerView.ViewHolder {
-            TextView textView, timestampView;
-            ViewHolder(View itemView) {
-                super(itemView);
-                textView = itemView.findViewById(R.id.chat_dialog_text);
-                timestampView = itemView.findViewById(R.id.chat_dialog_timestamp);
-            }
-        }
-    }
-
-    private class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
-        private List<String> messages;
-
-        ChatAdapter(List<String> messages) { this.messages = messages; }
-
-        @NonNull @Override
-        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            View v = LayoutInflater.from(parent.getContext())
-                      .inflate(R.layout.chat_message_item, parent, false);
-            return new ViewHolder(v);
-        }
-
-        @Override
-        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            holder.textView.setText(messages.get(position));
-        }
-
-        @Override
-        public int getItemCount() { return messages.size(); }
-
-        class ViewHolder extends RecyclerView.ViewHolder {
-            TextView textView, timestampView;
-            ViewHolder(View itemView) {
-                super(itemView);
-                textView = itemView.findViewById(R.id.chat_message_text);
-            }
-        }
-    }
-
-    private enum EmulationState { STOPPED, RUNNING, PAUSED }
 }
