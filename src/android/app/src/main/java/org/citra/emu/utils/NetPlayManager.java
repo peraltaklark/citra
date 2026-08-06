@@ -55,6 +55,7 @@ public class NetPlayManager {
                 Toast.makeText(activity, R.string.multiplayer_input_invalid, Toast.LENGTH_LONG).show();
             } else if (NetPlayCreateRoom(ipaddress, port, username) == 0) {
                 SetUsername(activity, username);
+                SetRoomAddress(activity, ipaddress);
                 SetRoomPort(activity, portStr);
                 Toast.makeText(activity, R.string.multiplayer_create_room_success, Toast.LENGTH_LONG).show();
                 dialog.dismiss();
@@ -99,6 +100,7 @@ public class NetPlayManager {
             } else if (NetPlayJoinRoom(ipaddress, port, username, "") == 0) {
                 SetRoomAddress(activity, ipaddress);
                 SetUsername(activity, username);
+                SetRoomAddress(activity, ipaddress);
                 SetRoomPort(activity, portStr);
                 Toast.makeText(activity, R.string.multiplayer_join_room_success, Toast.LENGTH_LONG).show();
                 dialog.dismiss();
