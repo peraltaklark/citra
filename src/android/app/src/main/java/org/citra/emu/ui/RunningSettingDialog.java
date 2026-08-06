@@ -764,6 +764,7 @@ public class RunningSettingDialog extends DialogFragment {
                 String roomAddress = NetPlayManager.GetRoomAddress(getActivity());
                 String roomPort = NetPlayManager.GetRoomPort(getActivity());
                 mSettings.add(new SettingsItem(SettingsItem.SETTING_MULTIPLAYER_ROOM_TEXT, roomAddress + ":" + roomPort, SettingsItem.TYPE_TEXT, 0));
+                mSettings.add(new SettingsItem(SettingsItem.SETTING_MULTIPLAYER_ROOM_TEXT, roomAddress + ":" + roomPort, SettingsItem.TYPE_TEXT, 0));
                 if (false && NetPlayManager.NetPlayIsHostedRoom()) {
                     for (int i = 1; i < infos.length; ++i) {
                         mSettings.add(new SettingsItem(SettingsItem.SETTING_MULTIPLAYER_ROOM_MEMBER, infos[i], SettingsItem.TYPE_BUTTON, 0));
