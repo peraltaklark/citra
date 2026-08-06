@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Dictionary;
@@ -81,7 +82,6 @@ public final class CitraDirectory {
             this.depth = depth;
         }
     }
-
 
     private static class InitTask extends AsyncTask<Context, Void, Void> {
         @Override
@@ -153,12 +153,10 @@ public final class CitraDirectory {
             }
             mIconCache.addIconToDB(info);
         }
-        // get name from title db
         String name = mTitleDB.get(info.id);
         if (name == null && info.id.length() > 8) {
             String id = "00040000" + info.id.substring(8);
             if (!info.id.equals(id)) {
-                // DLC? try again
                 name = mTitleDB.get(id);
             }
         }
@@ -274,7 +272,6 @@ public final class CitraDirectory {
             NativeLibrary.SetStatesPath("");
             return;
         }
-
         mStatesPath = path;
         NativeLibrary.SetStatesPath(path);
     }
@@ -286,14 +283,11 @@ public final class CitraDirectory {
             NativeLibrary.SetSDMCPath("");
             return;
         }
-
         SDMCDirectoryResolution resolution = resolveSDMCDirectory(path);
         ensureSDMCDirectoryExists(resolution);
         mUsingCustomSDMCPath = true;
         mSDMCPath = resolution.rootPath;
         NativeLibrary.SetSDMCPath(resolution.rootPath);
-        Log.i("citra", "Resolved SDMC directory: selected=" + path + ", root=" +
-                resolution.rootPath + ", existing=" + resolution.existingLayout);
     }
 
     public static File getCheatFile(String programId) {
@@ -368,7 +362,6 @@ public final class CitraDirectory {
         if (coreSection == null) {
             return "";
         }
-
         Setting pathSetting = coreSection.getSetting(key);
         if (pathSetting instanceof org.citra.emu.settings.model.StringSetting) {
             return ((org.citra.emu.settings.model.StringSetting)pathSetting).getValue();
@@ -403,7 +396,6 @@ public final class CitraDirectory {
         try {
             FileOutputStream outputStream = new FileOutputStream(file);
             ZipOutputStream zipOut = new ZipOutputStream(new BufferedOutputStream(outputStream));
-            // copy buttons
             for (int i = 0; i < inputIds.length; ++i) {
                 ZipEntry entry = new ZipEntry(inputNames[i]);
                 zipOut.putNextEntry(entry);
@@ -414,12 +406,10 @@ public final class CitraDirectory {
                 }
                 bitmap.compress(format, 90, zipOut);
             }
-            // copy glsl
             String glsl = "background.glsl";
             ZipEntry entry = new ZipEntry(glsl);
             zipOut.putNextEntry(entry);
             copyFile(context.getAssets().open(glsl), zipOut);
-            // close
             zipOut.close();
         } catch (IOException e) {
             Log.e("citra", "saveInputOverlay error", e);
@@ -435,34 +425,26 @@ public final class CitraDirectory {
         if (!file.exists()) {
             file = new File(themePath + "/default.zip");
         }
-
-        // default bitmaps
         for (int id : inputIds) {
             Bitmap bitmap = BitmapFactory.decodeResource(context.getResources(), id);
             inputs.put(id, bitmap);
         }
-
         if (!file.exists()) {
             return inputs;
         }
-
         try {
             FileInputStream inputStream = new FileInputStream(file);
             ZipInputStream zipIn = new ZipInputStream(new BufferedInputStream(inputStream));
-
             ZipEntry entry;
             while ((entry = zipIn.getNextEntry()) != null) {
                 if (entry.isDirectory()) {
                     continue;
                 }
-                // background glsl
                 if ("background.glsl".equals(entry.getName())) {
                     ByteArrayOutputStream output = new ByteArrayOutputStream();
                     copyFile(zipIn, output);
-                    Log.w("citra", "Ignoring background.glsl from overlay pack; shader import is not exposed in this build");
                     continue;
                 }
-                // buttons and background images
                 for (int i = 0; i < inputNames.length; ++i) {
                     if (inputNames[i].equals(entry.getName())) {
                         inputs.put(inputIds[i], BitmapFactory.decodeStream(zipIn));
@@ -474,7 +456,6 @@ public final class CitraDirectory {
         } catch (IOException e) {
             Log.e("citra", "loadInputOverlay error", e);
         }
-
         return inputs;
     }
 
@@ -519,18 +500,15 @@ public final class CitraDirectory {
                 return new SDMCDirectoryResolution(parent.getAbsolutePath(), true);
             }
         }
-
         File directNintendoDirectory = new File(selected, SDMC_DIRECTORY_NAME);
         if (directNintendoDirectory.isDirectory()) {
             return new SDMCDirectoryResolution(selected.getAbsolutePath(), true);
         }
-
         File nestedNintendoDirectory = findNintendo3DSDirectory(selected);
         if (nestedNintendoDirectory != null && nestedNintendoDirectory.getParentFile() != null) {
             return new SDMCDirectoryResolution(
                 nestedNintendoDirectory.getParentFile().getAbsolutePath(), true);
         }
-
         return new SDMCDirectoryResolution(selected.getAbsolutePath(), false);
     }
 
@@ -551,12 +529,10 @@ public final class CitraDirectory {
         if (!root.isDirectory()) {
             return null;
         }
-
         ArrayDeque<DirectorySearchNode> queue = new ArrayDeque<>();
         Set<String> visited = new HashSet<>();
         queue.add(new DirectorySearchNode(root, 0));
         int visitedDirectories = 0;
-
         while (!queue.isEmpty() && visitedDirectories < MAX_SDMC_SEARCH_DIRECTORIES) {
             DirectorySearchNode node = queue.removeFirst();
             File directory = node.directory;
@@ -565,12 +541,10 @@ public final class CitraDirectory {
                 continue;
             }
             ++visitedDirectories;
-
             File[] children = directory.listFiles();
             if (children == null) {
                 continue;
             }
-
             for (File child : children) {
                 if (!child.isDirectory()) {
                     continue;
@@ -583,7 +557,6 @@ public final class CitraDirectory {
                 }
             }
         }
-
         return null;
     }
 
@@ -606,7 +579,7 @@ public final class CitraDirectory {
     }
 
     public static List<String> readAllLines(InputStream input) {
-        byte[] buffer = new byte[1024*8];
+        byte[] buffer = new byte[1024 * 8];
         List<String> lines = new ArrayList<>();
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         try {
@@ -617,7 +590,6 @@ public final class CitraDirectory {
                     int offset = 0;
                     while (i < size) {
                         if (buffer[i++] == '\n') {
-                            // new line start, save previous line
                             output.write(buffer, offset, i - offset - 1);
                             lines.add(output.toString());
                             output.reset();
@@ -625,7 +597,6 @@ public final class CitraDirectory {
                         }
                     }
                     if (offset < size) {
-                        // save remain bytes
                         output.write(buffer, offset, size - offset);
                     }
                 } else {
@@ -642,7 +613,6 @@ public final class CitraDirectory {
         }
         return lines;
     }
-}
 
     public static Map<String, String> loadInputLayoutConfig(Context context) {
         Map<String, String> layout = new HashMap<>();
@@ -691,5 +661,4 @@ public final class CitraDirectory {
         }
         reader.close();
     }
-
 }
