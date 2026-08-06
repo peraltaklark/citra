@@ -691,7 +691,6 @@ public class RunningSettingDialog extends DialogFragment {
         }
     }
 
-    
     public final class MemberRowViewHolder extends SettingViewHolder {
         private TextView mNickname;
         private TextView mGame;
@@ -708,9 +707,18 @@ public class RunningSettingDialog extends DialogFragment {
 
         @Override
         public void bind(SettingsItem item) {
-            String[] parts = item.getName().split("\t", 2);
-            mNickname.setText(parts[0]);
-            mGame.setText(parts.length > 1 ? parts[1] : "");
+            String[] parts = item.getName().split("\\|", 2);
+            if (parts[0].isEmpty()) {
+                mNickname.setText("Player");
+            } else {
+                mNickname.setText(parts[0]);
+            }
+            if (parts.length > 1 && !parts[1].isEmpty()) {
+                mGame.setVisibility(View.VISIBLE);
+                mGame.setText(parts[1]);
+            } else {
+                mGame.setVisibility(View.GONE);
+            }
         }
 
         @Override
