@@ -705,9 +705,7 @@ public class RunningSettingDialog extends DialogFragment {
 
         @Override
         public void bind(SettingsItem item) {
-            String text = item.getName().replace("|", " (" );
-            if (!text.endsWith(")")) text = text + ")";
-            mNickname.setText(text);
+            mNickname.setText(item.getName());
         }
 
         @Override
