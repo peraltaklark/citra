@@ -1,3 +1,4 @@
+#include "jni_common.h"
 #include "input_manager.h"
 
 #include <tuple>
@@ -370,9 +371,17 @@ bool InputManager::InputEvent(int button, float value) {
 bool InputManager::KeyEvent(int button, float value) {
     if (mButtonKeys[N3DS_BUTTON_HOME] == button) {
         if (value == 0 && mHomePressed) {
-            Settings::SwapScreenLayout();
+            NativeLibrary::ShowRunningSetting();
             mHomePressed = false;
         } else {
+            mHomePressed = true;
+        }
+        return true;
+    }
+            mHomePressed = true;
+        }
+        return true;
+    }
             mHomePressed = true;
         }
         return true;
