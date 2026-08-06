@@ -707,13 +707,18 @@ public class RunningSettingDialog extends DialogFragment {
 
         @Override
         public void bind(SettingsItem item) {
-            String name = item.getName();
-            if (name.isEmpty()) {
+            String[] parts = item.getName().split("\\|", 2);
+            if (parts[0].isEmpty()) {
                 mNickname.setText("Player");
             } else {
-                mNickname.setText(name);
+                mNickname.setText(parts[0]);
             }
-            mGame.setText("");
+            if (parts.length > 1 && !parts[1].isEmpty()) {
+                mGame.setVisibility(View.VISIBLE);
+                mGame.setText(parts[1]);
+            } else {
+                mGame.setVisibility(View.GONE);
+            }
         }
 
         @Override
