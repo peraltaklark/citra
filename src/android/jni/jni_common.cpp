@@ -131,6 +131,10 @@ void NativeLibrary::HandleNFCScanning(bool isScanning) {
     JniHelper::CallStaticMethod<void>(CLASS, "handleNFCScanning", isScanning);
 }
 
+
+void NativeLibrary::ShowRunningSetting() {
+    JniHelper::CallStaticMethod<void>(CLASS, "showRunningSetting");
+}
 void NativeLibrary::ImageLoadedCallback(u32* pixels, u32 width, u32 height) {
     s_image_loaded_callback(pixels, width, height);
     s_image_loaded_callback = nullptr;
