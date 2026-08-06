@@ -693,7 +693,6 @@ public class RunningSettingDialog extends DialogFragment {
 
     public final class MemberRowViewHolder extends SettingViewHolder {
         private TextView mNickname;
-        private TextView mGame;
 
         public MemberRowViewHolder(View itemView) {
             super(itemView);
@@ -702,23 +701,13 @@ public class RunningSettingDialog extends DialogFragment {
         @Override
         protected void findViews(View root) {
             mNickname = root.findViewById(R.id.member_nickname);
-            mGame = root.findViewById(R.id.member_game);
         }
 
         @Override
         public void bind(SettingsItem item) {
-            String[] parts = item.getName().split("\\|", 2);
-            if (parts[0].isEmpty()) {
-                mNickname.setText("Player");
-            } else {
-                mNickname.setText(parts[0]);
-            }
-            if (parts.length > 1 && !parts[1].isEmpty()) {
-                mGame.setVisibility(View.VISIBLE);
-                mGame.setText(parts[1]);
-            } else {
-                mGame.setVisibility(View.GONE);
-            }
+            String text = item.getName().replace("|", " (" );
+            if (!text.endsWith(")")) text = text + ")";
+            mNickname.setText(text);
         }
 
         @Override
