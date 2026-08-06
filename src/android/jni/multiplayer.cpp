@@ -200,7 +200,7 @@ std::vector<std::string> NetPlayRoomInfo() {
             infolist.push_back(room->GetRoomInformation().name);
             // all
             for (const auto& member : members) {
-                infolist.push_back((member.nickname.empty() ? "Player" : member.nickname) + "|" + member.game_info.name);
+                infolist.push_back(member.nickname);
             }
         }
     }
