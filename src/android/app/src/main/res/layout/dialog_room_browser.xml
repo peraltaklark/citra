@@ -26,6 +26,40 @@
             android:layout_height="wrap_content" />
     </LinearLayout>
 
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center">
+
+        <ToggleButton
+            android:id="@+id/btn_hide_empty"
+            android:textOff="Hide Empty"
+            android:textOn="Hide Empty"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textSize="11sp" />
+
+        <ToggleButton
+            android:id="@+id/btn_hide_full"
+            android:textOff="Hide Full"
+            android:textOn="Hide Full"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textSize="11sp" />
+
+        <ToggleButton
+            android:id="@+id/btn_hide_locked"
+            android:textOff="Hide Locked"
+            android:textOn="Hide Locked"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textSize="11sp" />
+    </LinearLayout>
+
     <TextView
         android:id="@+id/loading_text"
         android:layout_width="match_parent"
