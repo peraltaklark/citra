@@ -123,8 +123,7 @@ public class NetPlayManager {
 
         public static String GetRoomAddress(final Activity activity) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(activity);
-        String address = GetIpAddressByWifi(activity);
-        return prefs.getString("NetPlayRoomAddress", address);
+        return prefs.getString("NetPlayRoomAddress", "");
     }
 
         public static void SetRoomAddress(final Activity activity, final String address) {
