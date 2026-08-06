@@ -378,14 +378,6 @@ bool InputManager::KeyEvent(int button, float value) {
         }
         return true;
     }
-            mHomePressed = true;
-        }
-        return true;
-    }
-            mHomePressed = true;
-        }
-        return true;
-    }
 
     // buttons
     if (mButtonFactory->ButtonEvent(button, value)) {
