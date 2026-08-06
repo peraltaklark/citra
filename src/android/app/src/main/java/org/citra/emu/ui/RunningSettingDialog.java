@@ -172,6 +172,7 @@ public class RunningSettingDialog extends DialogFragment {
         public static final int SETTING_MULTIPLAYER_JOIN_ROOM = 402;
         public static final int SETTING_MULTIPLAYER_ROOM_MEMBER = 403;
         public static final int SETTING_MULTIPLAYER_EXIT_ROOM = 404;
+        public static final int SETTING_MULTIPLAYER_MEMBER_ROW = 406;
         public static final int SETTING_MULTIPLAYER_PUBLIC_ROOMS = 405;
 
         // view type
@@ -180,6 +181,7 @@ public class RunningSettingDialog extends DialogFragment {
         public static final int TYPE_SEEK_BAR = 2;
         public static final int TYPE_BUTTON = 3;
         public static final int TYPE_TEXT = 4;
+        public static final int TYPE_MEMBER_ROW = 5;
 
         private int mSetting;
         private String mName;
@@ -689,6 +691,32 @@ public class RunningSettingDialog extends DialogFragment {
         }
     }
 
+    
+    public final class MemberRowViewHolder extends SettingViewHolder {
+        private TextView mNickname;
+        private TextView mGame;
+
+        public MemberRowViewHolder(View itemView) {
+            super(itemView);
+        }
+
+        @Override
+        protected void findViews(View root) {
+            mNickname = root.findViewById(R.id.member_nickname);
+            mGame = root.findViewById(R.id.member_game);
+        }
+
+        @Override
+        public void bind(SettingsItem item) {
+            String[] parts = item.getName().split("\t", 2);
+            mNickname.setText(parts[0]);
+            mGame.setText(parts.length > 1 ? parts[1] : "");
+        }
+
+        @Override
+        public void onClick(View clicked) {}
+    }
+
     public class SettingsAdapter extends RecyclerView.Adapter<SettingViewHolder> {
         private int[] mInitialRunningSettings;
         private int[] mRunningSettings;
@@ -731,7 +759,7 @@ public class RunningSettingDialog extends DialogFragment {
                     }
                 } else {
                     for (int i = 1; i < infos.length; ++i) {
-                        mSettings.add(new SettingsItem(SettingsItem.SETTING_MULTIPLAYER_ROOM_MEMBER, infos[i], SettingsItem.TYPE_TEXT, 0));
+                        mSettings.add(new SettingsItem(SettingsItem.SETTING_MULTIPLAYER_MEMBER_ROW, infos[i], SettingsItem.TYPE_MEMBER_ROW, 0));
                     }
                 }
                 mSettings.add(new SettingsItem(SettingsItem.SETTING_MULTIPLAYER_EXIT_ROOM, R.string.multiplayer_exit_room, SettingsItem.TYPE_TEXT, 0));
@@ -892,6 +920,9 @@ public class RunningSettingDialog extends DialogFragment {
             case SettingsItem.TYPE_BUTTON:
                 itemView = inflater.inflate(R.layout.list_item_running_button, parent, false);
                 return new ButtonSettingViewHolder(itemView);
+            case SettingsItem.TYPE_MEMBER_ROW:
+                itemView = inflater.inflate(R.layout.list_item_member_row, parent, false);
+                return new MemberRowViewHolder(itemView);
             case SettingsItem.TYPE_TEXT:
                 itemView = inflater.inflate(R.layout.list_item_running_text, parent, false);
                 return new TextSettingViewHolder(itemView);
@@ -906,6 +937,8 @@ public class RunningSettingDialog extends DialogFragment {
 
         @Override
         public int getItemViewType(int position) {
+            if (mSettings.get(position).getSetting() == SettingsItem.SETTING_MULTIPLAYER_MEMBER_ROW)
+                return SettingsItem.TYPE_MEMBER_ROW;
             return mSettings.get(position).getType();
         }
 
