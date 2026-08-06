@@ -91,6 +91,7 @@ public final class InputOverlay extends View {
     private Paint mPaint;
 
     private SharedPreferences mPreferences;
+    private Map<String, String> mLayoutMap;
 
     public InputOverlay(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -130,6 +131,7 @@ public final class InputOverlay extends View {
         }
         sPrefsEditor.putBoolean(PREF_CONTROLLER_INIT, true);
         sPrefsEditor.apply();
+        saveToLayoutIni(buttonId, x, y);
     }
 
     @Override
@@ -319,6 +321,38 @@ public final class InputOverlay extends View {
         return false;
     }
 
+    private void saveToLayoutIni(int buttonId, float x, float y) {
+        String suffix = mIsLandscape ? "_landscape" : "_portrait";
+        String name = getButtonIniName(buttonId);
+        if (name == null) return;
+        String key = name + suffix;
+        String value = (int)(x * 100) + "," + (int)(y * 100) + ",100,1";
+        if (mLayoutMap == null) mLayoutMap = new HashMap<>();
+        mLayoutMap.put(key, value);
+        CitraDirectory.saveInputLayoutConfig(getContext(), mLayoutMap);
+    }
+
+    private String getButtonIniName(int buttonId) {
+        if (buttonId == ButtonType.N3DS_BUTTON_A) return "button_a";
+        if (buttonId == ButtonType.N3DS_BUTTON_B) return "button_b";
+        if (buttonId == ButtonType.N3DS_BUTTON_X) return "button_x";
+        if (buttonId == ButtonType.N3DS_BUTTON_Y) return "button_y";
+        if (buttonId == ButtonType.N3DS_BUTTON_L) return "button_l";
+        if (buttonId == ButtonType.N3DS_BUTTON_R) return "button_r";
+        if (buttonId == ButtonType.N3DS_BUTTON_ZL) return "button_zl";
+        if (buttonId == ButtonType.N3DS_BUTTON_ZR) return "button_zr";
+        if (buttonId == ButtonType.N3DS_BUTTON_START) return "button_start";
+        if (buttonId == ButtonType.N3DS_BUTTON_SELECT) return "button_select";
+        if (buttonId == ButtonType.N3DS_BUTTON_HOME) return "button_home";
+        if (buttonId == ButtonType.N3DS_DPAD_UP) return "dpad";
+        if (buttonId == ButtonType.N3DS_CPAD_X) return "joystick";
+        if (buttonId == ButtonType.N3DS_STICK_X) return "c_stick";
+        if (buttonId == ButtonType.EMU_COMBO_KEY_1) return "button_one";
+        if (buttonId == ButtonType.EMU_COMBO_KEY_2) return "button_two";
+        if (buttonId == ButtonType.EMU_COMBO_KEY_3) return "button_three";
+        return null;
+    }
+
     private void saveControlPosition(int buttonId, Rect bounds) {
         final DisplayMetrics dm = getResources().getDisplayMetrics();
         SharedPreferences.Editor sPrefsEditor = mPreferences.edit();
@@ -329,6 +363,7 @@ public final class InputOverlay extends View {
         sPrefsEditor.putFloat(buttonId + (mIsLandscape ? "_XX" : "_X"), x);
         sPrefsEditor.putFloat(buttonId + (mIsLandscape ? "_YY" : "_Y"), y);
         sPrefsEditor.apply();
+        saveToLayoutIni(buttonId, x, y);
     }
 
     public void refreshControls() {
