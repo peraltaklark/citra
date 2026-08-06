@@ -33,6 +33,7 @@ public:
                                       const std::vector<std::string>& miis);
     static void ShowMessageDialog(int type, const std::string& msg);
     static void AddNetPlayMessage(int type, const std::string& msg);
+    static void ShowRunningSetting();
     static void PickImage(u32 width, u32 height, ImageLoadedHandler handler);
     static int GetSafeInsetLeft();
     static int GetSafeInsetTop();
