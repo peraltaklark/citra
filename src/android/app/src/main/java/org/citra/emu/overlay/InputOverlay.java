@@ -58,7 +58,7 @@ public final class InputOverlay extends View {
             {ButtonType.N3DS_BUTTON_ZR, R.integer.TRIGGER_ZR_X, R.integer.TRIGGER_ZR_Y, R.drawable.zr, R.drawable.zr_pressed},
             {ButtonType.N3DS_BUTTON_L, R.integer.TRIGGER_L_X, R.integer.TRIGGER_L_Y, R.drawable.l, R.drawable.l_pressed},
             {ButtonType.N3DS_BUTTON_R, R.integer.TRIGGER_R_X, R.integer.TRIGGER_R_Y, R.drawable.r, R.drawable.r_pressed},
-            {ButtonType.N3DS_BUTTON_DEBUG, R.integer.BUTTON_HOME_X, R.integer.BUTTON_HOME_Y, R.drawable.home, R.drawable.home_pressed},
+            {ButtonType.N3DS_BUTTON_HOME, R.integer.BUTTON_HOME_X, R.integer.BUTTON_HOME_Y, R.drawable.home, R.drawable.home_pressed},
             // dpad
             {ButtonType.N3DS_DPAD_UP, R.integer.PAD_MAIN_X, R.integer.PAD_MAIN_Y, 0, 0},
             // stick
