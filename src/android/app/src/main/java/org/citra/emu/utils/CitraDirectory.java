@@ -643,3 +643,53 @@ public final class CitraDirectory {
         return lines;
     }
 }
+
+    public static Map<String, String> loadInputLayoutConfig(Context context) {
+        Map<String, String> layout = new HashMap<>();
+        try {
+            InputStream is = context.getAssets().open("config/input-layout.ini");
+            parseLayoutIni(layout, is);
+        } catch (IOException ignored) {}
+        try {
+            FileInputStream fis = new FileInputStream(getConfigDirectory() + "/input-layout.ini");
+            parseLayoutIni(layout, fis);
+        } catch (IOException ignored) {}
+        return layout;
+    }
+
+    public static void saveInputLayoutConfig(Context context, Map<String, String> layout) {
+        try {
+            FileOutputStream fos = new FileOutputStream(getConfigDirectory() + "/input-layout.ini");
+            OutputStreamWriter writer = new OutputStreamWriter(fos);
+            writer.write("// landscape layout = X[-100,100], Y[-100,100], SCALE[0,200], VISIBLE[0,1]\n");
+            for (Map.Entry<String, String> entry : layout.entrySet()) {
+                if (entry.getKey().endsWith("_landscape"))
+                    writer.write(entry.getKey() + "=" + entry.getValue() + "\n");
+            }
+            writer.write("// portrait layout\n");
+            for (Map.Entry<String, String> entry : layout.entrySet()) {
+                if (entry.getKey().endsWith("_portrait"))
+                    writer.write(entry.getKey() + "=" + entry.getValue() + "\n");
+            }
+            writer.close();
+            fos.close();
+        } catch (IOException e) {
+            Log.e("citra", "saveInputLayoutConfig error", e);
+        }
+    }
+
+    private static void parseLayoutIni(Map<String, String> map, InputStream is) throws IOException {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+        String line;
+        while ((line = reader.readLine()) != null) {
+            int eq = line.indexOf('=');
+            if (eq > 0 && eq < line.length() - 1 && line.charAt(0) != '/') {
+                String key = line.substring(0, eq).trim();
+                String value = line.substring(eq + 1).trim();
+                map.put(key, value);
+            }
+        }
+        reader.close();
+    }
+
+}
