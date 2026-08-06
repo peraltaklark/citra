@@ -69,7 +69,7 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
     private RecyclerView mChatRecycler;
     private ChatAdapter mChatAdapter;
     private List<String> mChatMessages;           // overlay list (max 8, cleared on hide)
-    private List<String> mChatHistory;            // full history list (never auto-cleared)
+    private List<ChatMessage> mChatHistory;            // full history list (never auto-cleared)
 
     private ChatDialog mChatDialog;
     private ChatDialogAdapter mChatDialogAdapter;
@@ -362,7 +362,7 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
 
             // Add to full history (unlimited)
             if (mChatHistory == null) mChatHistory = new ArrayList<>();
-            mChatHistory.add(msg);
+            mChatHistory.add(new ChatMessage(msg));
             if (mChatDialogAdapter != null) {
                 mChatDialogAdapter.notifyDataSetChanged();
             }
@@ -413,6 +413,17 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
         mChatDialog.show();
     }
 
+    private static class ChatMessage {
+        String text;
+        String timestamp;
+
+        ChatMessage(String text) {
+            this.text = text;
+            this.timestamp = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+                    .format(new java.util.Date());
+        }
+    }
+
     private class ChatDialog extends android.app.Dialog {
         private RecyclerView recycler;
         private EditText input;
@@ -422,7 +433,9 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
             super(context);
             setContentView(R.layout.dialog_chat);
             recycler = findViewById(R.id.dialog_chat_recycler);
-            recycler.setLayoutManager(new LinearLayoutManager(context));
+            LinearLayoutManager layoutManager = new LinearLayoutManager(context);
+            layoutManager.setStackFromEnd(true);
+            recycler.setLayoutManager(layoutManager);
             input = findViewById(R.id.dialog_chat_input);
             send = findViewById(R.id.dialog_chat_send);
             send.setOnClickListener(v -> {
@@ -444,10 +457,21 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
         }
     }
 
-    private class ChatDialogAdapter extends RecyclerView.Adapter<ChatDialogAdapter.ViewHolder> {
-        private List<String> messages;
+    private static class ChatMessage {
+        String text;
+        String timestamp;
 
-        ChatDialogAdapter(List<String> messages) { this.messages = messages; }
+        ChatMessage(String text) {
+            this.text = text;
+            this.timestamp = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+                    .format(new java.util.Date());
+        }
+    }
+
+    private class ChatDialogAdapter extends RecyclerView.Adapter<ChatDialogAdapter.ViewHolder> {
+        private List<ChatMessage> messages;
+
+        ChatDialogAdapter(List<ChatMessage> messages) { this.messages = messages; }
 
         @NonNull @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -458,7 +482,9 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
 
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            holder.textView.setText(messages.get(position));
+            ChatMessage msg = messages.get(position);
+            holder.textView.setText(msg.text);
+            holder.timestampView.setText(msg.timestamp);
             // Force white text for visibility on dark background
         }
 
@@ -466,10 +492,11 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
         public int getItemCount() { return messages.size(); }
 
         class ViewHolder extends RecyclerView.ViewHolder {
-            TextView textView;
+            TextView textView, timestampView;
             ViewHolder(View itemView) {
                 super(itemView);
                 textView = itemView.findViewById(R.id.chat_dialog_text);
+                timestampView = itemView.findViewById(R.id.chat_dialog_timestamp);
             }
         }
     }
@@ -495,7 +522,7 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
         public int getItemCount() { return messages.size(); }
 
         class ViewHolder extends RecyclerView.ViewHolder {
-            TextView textView;
+            TextView textView, timestampView;
             ViewHolder(View itemView) {
                 super(itemView);
                 textView = itemView.findViewById(R.id.chat_message_text);
