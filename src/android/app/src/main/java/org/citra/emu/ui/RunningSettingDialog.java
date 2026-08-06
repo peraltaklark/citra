@@ -693,6 +693,7 @@ public class RunningSettingDialog extends DialogFragment {
 
     public final class MemberRowViewHolder extends SettingViewHolder {
         private TextView mNickname;
+        private TextView mGame;
 
         public MemberRowViewHolder(View itemView) {
             super(itemView);
@@ -701,11 +702,18 @@ public class RunningSettingDialog extends DialogFragment {
         @Override
         protected void findViews(View root) {
             mNickname = root.findViewById(R.id.member_nickname);
+            mGame = root.findViewById(R.id.member_game);
         }
 
         @Override
         public void bind(SettingsItem item) {
-            mNickname.setText(item.getName());
+            String name = item.getName();
+            if (name.isEmpty()) {
+                mNickname.setText("Player");
+            } else {
+                mNickname.setText(name);
+            }
+            mGame.setText("");
         }
 
         @Override
