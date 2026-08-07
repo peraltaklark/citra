@@ -502,9 +502,9 @@ public final class EmulationActivity extends AppCompatActivity {
     public Bitmap getInputBitmap(int id, float scale) {
         Bitmap origin = BitmapFactory.decodeResource(getResources(), id);
         float oriWidth = origin.getWidth();
-        android.util.Log.i("citra", "getInputBitmap origin=" + oriWidth + "x" + origin.getHeight() + " bitmap=" + bitmap.getWidth() + "x" + bitmap.getHeight() + " scale=" + scale);
         // theme
         Bitmap bitmap = mBitmaps.get(id);
+        android.util.Log.i("citra", "getInputBitmap origin=" + oriWidth + "x" + origin.getHeight() + " bitmap=" + bitmap.getWidth() + "x" + bitmap.getHeight() + " scale=" + scale);
         int dstWidth = bitmap.getWidth();
         int dstHeight = bitmap.getHeight();
         // adjust scale by default theme bitmap width
