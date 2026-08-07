@@ -23,6 +23,7 @@ import java.util.Map;
 
 import org.citra.emu.NativeLibrary.ButtonType;
 import org.citra.emu.R;
+import org.citra.emu.NativeLibrary;
 import org.citra.emu.utils.CitraDirectory;
 import org.citra.emu.ui.EmulationActivity;
 
