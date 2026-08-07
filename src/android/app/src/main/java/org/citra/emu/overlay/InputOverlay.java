@@ -339,6 +339,11 @@ public final class InputOverlay extends View {
                     float x = Float.parseFloat(parts[0]) / 100.0f;
                     float y = Float.parseFloat(parts[1]) / 100.0f;
                     int visible = Integer.parseInt(parts[3]);
+                    int scale = Integer.parseInt(parts[2]);
+                    if (scale > 0) {
+                        sControllerScale = scale;
+                        editor.putInt(InputOverlay.PREF_CONTROLLER_SCALE, scale);
+                    }
                     editor.putFloat(buttonId + "_X", x);
                     editor.putFloat(buttonId + "_Y", y);
                     editor.putFloat(buttonId + "_XX", x);
@@ -375,7 +380,7 @@ public final class InputOverlay extends View {
         String name = getButtonIniName(buttonId);
         if (name == null) return;
         String key = name + suffix;
-        String value = (int)(x * 100) + "," + (int)(y * 100) + ",100,1";
+        String value = (int)(x * 100) + "," + (int)(y * 100) + "," + (sControllerScale + 100) + "," + (mInputVisibles.get(buttonId) != null && mInputVisibles.get(buttonId) ? 1 : 0);
         if (mLayoutMap == null) mLayoutMap = new HashMap<>();
         mLayoutMap.put(key, value);
         CitraDirectory.saveInputLayoutConfig(getContext(), mLayoutMap);
@@ -484,7 +489,7 @@ public final class InputOverlay extends View {
     private InputOverlayButton initializeButton(int defaultResId, int pressedResId, int id, int[] buttons) {
         final Resources res = getResources();
         final DisplayMetrics dm = res.getDisplayMetrics();
-        float scale = 0.14f * (sControllerScale + 50) / 100;
+        float scale = 0.14f * (sControllerScale + 100) / 100;
 
         switch (id) {
         case ButtonType.N3DS_BUTTON_L:
@@ -540,7 +545,7 @@ public final class InputOverlay extends View {
         final int defaultResId = R.drawable.dpad;
         final int pressedOneDirectionResId = R.drawable.dpad_pressed_one;
         final int pressedTwoDirectionsResId = R.drawable.dpad_pressed_two;
-        float scale = 0.32f * (sControllerScale + 50) / 100;
+        float scale = 0.32f * (sControllerScale + 100) / 100;
 
         Bitmap defaultBitmap = getInputBitmap(defaultResId, scale);
         Bitmap onePressedBitmap = getInputBitmap(pressedOneDirectionResId, scale);
@@ -571,7 +576,7 @@ public final class InputOverlay extends View {
         int resOuter = R.drawable.joystick_range;
         int defaultResInner = R.drawable.joystick;
         int pressedResInner = R.drawable.joystick_pressed;
-        float scale = 0.275f * (sControllerScale + 50) / 100;
+        float scale = 0.275f * (sControllerScale + 100) / 100;
 
         if (joystick == ButtonType.N3DS_STICK_X) {
             resOuter = R.drawable.c_stick_range;
