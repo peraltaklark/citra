@@ -31,6 +31,7 @@ public final class SettingsFile {
     public static final String KEY_USE_PRESENT_THREAD = "use_present_thread";
     public static final String KEY_CPU_USAGE_LIMIT = "cpu_usage_limit";
     public static final String KEY_STATES_PATH = "states_path";
+    public static final String KEY_USER_PATH = "user_path";
     public static final String KEY_SDMC_PATH = "sdmc_path";
     // Renderer
     public static final String KEY_USE_GLES = "use_gles";

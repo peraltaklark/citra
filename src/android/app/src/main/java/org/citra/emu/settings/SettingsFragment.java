@@ -250,6 +250,16 @@ public final class SettingsFragment extends Fragment {
         sl.add(new HeaderSetting(null, null, R.string.setting_header_storage, 0));
         sl.add(new EditorSetting(SettingsFile.KEY_SDMC_PATH, Settings.SECTION_INI_CORE,
                 sdmcPath, R.string.setting_sdmc_path, R.string.setting_sdmc_path_description));
+        Setting userPath = coreSection.getSetting(SettingsFile.KEY_USER_PATH);
+        if (userPath == null) {
+            userPath = new org.citra.emu.settings.model.StringSetting(
+                SettingsFile.KEY_USER_PATH, Settings.SECTION_INI_CORE,
+                CitraDirectory.getUserDirectory());
+            coreSection.putSetting(userPath);
+        }
+        sl.add(new EditorSetting(SettingsFile.KEY_USER_PATH, Settings.SECTION_INI_CORE,
+                userPath, R.string.user_path, R.string.user_path_description));
+
         sl.add(new EditorSetting(SettingsFile.KEY_STATES_PATH, Settings.SECTION_INI_CORE,
                 statesPath, R.string.setting_states_path, R.string.setting_states_path_description));
         if (mGameID.isEmpty()) {

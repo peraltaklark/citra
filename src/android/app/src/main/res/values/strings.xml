@@ -2,7 +2,7 @@
 <resources>
 
     <!-- Title of the app -->
-    <string name="app_name">Citra BJJ Enhanced</string>
+    <string name="app_name">Citra BJJ</string>
     <string name="app_name_version">Citra BJJ %1$s</string>
     <string name="host">app</string>
     <string name="scheme">citra</string>
@@ -166,6 +166,8 @@
     <string name="setting_system_language">System Language</string>
     <string name="setting_shared_font">System Font</string>
     <string name="setting_theme_package">Theme</string>
+    <string name="user_path">Citra-emu Folder</string>
+    <string name="user_path_description">Choose the root folder for config, saves, and data</string>
     <string name="setting_sdmc_path">SDMC Folder</string>
     <string name="setting_sdmc_path_description">Root folder for emulated SD card data. Pick the SDMC root itself, the `Nintendo 3DS` folder, or a higher folder that already contains it. If no existing `Nintendo 3DS` folder is found, the selected folder is treated as a new SDMC root.</string>
     <string name="setting_states_path">Save States Folder</string>
