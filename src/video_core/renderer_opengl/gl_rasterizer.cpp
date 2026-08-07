@@ -123,7 +123,7 @@ RasterizerOpenGL::RasterizerOpenGL()
       texture_buffer(GL_TEXTURE_BUFFER, is_mali_gpu ? 11264 : TEXTURE_BUFFER_SIZE),
       texture_lf_buffer(GL_TEXTURE_BUFFER, is_mali_gpu ? 525312 : TEXTURE_BUFFER_SIZE) {
 
-    AllowShadow = true;
+    AllowShadow = GLAD_GL_OES_shader_image_atomic || GLAD_GL_EXT_shader_image_load_store || GLAD_GL_ANDROID_extension_pack_es31a;
 
     // Clipping plane 0 is always enabled for PICA fixed clip plane z <= 0
     state.clip_distance[0] = true;
