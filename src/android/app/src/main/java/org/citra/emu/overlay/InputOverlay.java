@@ -85,6 +85,7 @@ public final class InputOverlay extends View {
     private final HashMap<Integer, Boolean> mInputVisibles = new HashMap<>();
     private int mJoystickIndex = 0;
     private boolean mIsLandscape = false;
+        sControllerScale = NativeLibrary.getConfigInteger("input_overlay_scale");
     private boolean mInEditMode = false;
     private boolean mBeingMoved = false;
     private int mInEditPosX = 0;
@@ -441,6 +442,7 @@ public final class InputOverlay extends View {
         int previousSize = mInputObjects.size();
         mJoystickIndex = 0;
         mIsLandscape =
+        sControllerScale = NativeLibrary.getConfigInteger("input_overlay_scale");
             getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
         // Remove all the overlay buttons
         mInputObjects.clear();
