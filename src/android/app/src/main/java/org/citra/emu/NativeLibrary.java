@@ -439,6 +439,7 @@ public final class NativeLibrary {
      * emulation
      */
     public static native void SetUserPath(String path);
+    public static native int getConfigInteger(String key);
     public static native void SetStatesPath(String path);
     public static native void SetSDMCPath(String path);
     public static native void loadAmiibo(String path);

@@ -1421,3 +1421,13 @@ Java_org_citra_emu_utils_NetPlayManager_NetPlayGetConsoleId(JNIEnv* env, jclass 
 #ifdef __cplusplus
 }
 #endif
+
+JNIEXPORT jint JNICALL Java_org_citra_emu_NativeLibrary_getConfigInteger(
+    JNIEnv* env, jclass clazz, jstring key) {
+    std::string keyStr = JniHelper::Unwrap(key);
+    if (keyStr == "input_overlay_scale") {
+        return Config::Get(Config::INPUT_OVERLAY_SCALE);
+    }
+    return 0;
+}
+

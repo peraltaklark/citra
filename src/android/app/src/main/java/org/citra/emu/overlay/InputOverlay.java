@@ -111,6 +111,10 @@ public final class InputOverlay extends View {
 
         sUseHapticFeedback = mPreferences.getBoolean(InputOverlay.PREF_HAPTIC_FEEDBACK, true);
         loadFromLayoutIni();
+        int nativeScale = NativeLibrary.getConfigInteger("input_overlay_scale");
+        if (nativeScale > 0) {
+            sControllerScale = nativeScale;
+        }
         sJoystickRelative = mPreferences.getBoolean(InputOverlay.PREF_JOYSTICK_RELATIVE, true);
         sControllerScale = mPreferences.getInt(InputOverlay.PREF_CONTROLLER_SCALE, 40);
         sControllerAlpha = mPreferences.getInt(InputOverlay.PREF_CONTROLLER_ALPHA, 100);
@@ -371,12 +375,11 @@ public final class InputOverlay extends View {
         return -1;
     }
     private void saveToLayoutIni(int buttonId, float x, float y) {
-        android.util.Log.i("citra", "saveToLayoutIni called: buttonId=" + buttonId + " x=" + x + " y=" + y);
         String suffix = mIsLandscape ? "_landscape" : "_portrait";
         String name = getButtonIniName(buttonId);
         if (name == null) return;
         String key = name + suffix;
-        String value = (int)(x * 100) + "," + (int)(y * 100) + "," + sControllerScale + "," + (mInputVisibles.get(buttonId) != null && mInputVisibles.get(buttonId) ? 1 : 0);
+        String value = (int)(x * 100) + "," + (int)(y * 100) + ",100," + (mInputVisibles.get(buttonId) != null && mInputVisibles.get(buttonId) ? 1 : 0);
         
         Map<String, String> layout = CitraDirectory.loadInputLayoutConfig(getContext());
         if (layout == null) layout = new HashMap<>();
@@ -391,7 +394,7 @@ public final class InputOverlay extends View {
                 float bx = mPreferences.getFloat(id + (mIsLandscape ? "_XX" : "_X"), 0f);
                 float by = mPreferences.getFloat(id + (mIsLandscape ? "_YY" : "_Y"), 0.5f);
                 int vis = mInputVisibles.get(id) != null && mInputVisibles.get(id) ? 1 : 0;
-                String v = (int)(bx * 100) + "," + (int)(by * 100) + "," + sControllerScale + "," + vis;
+                String v = (int)(bx * 100) + "," + (int)(by * 100) + "," + 100 + "," + vis;
                 layout.put(k, v);
             }
         }
@@ -502,16 +505,16 @@ public final class InputOverlay extends View {
     private InputOverlayButton initializeButton(int defaultResId, int pressedResId, int id, int[] buttons) {
         final Resources res = getResources();
         final DisplayMetrics dm = res.getDisplayMetrics();
-        float scale = 0.14f * (sControllerScale + 100) / 100;
+        float scale = (100.0f * (sControllerScale + 70)) / 58000.0f;
 
         switch (id) {
         case ButtonType.N3DS_BUTTON_L:
         case ButtonType.N3DS_BUTTON_R:
-            scale *= 1.7f;
+            scale *= 2.0f;
             break;
         case ButtonType.N3DS_BUTTON_ZL:
         case ButtonType.N3DS_BUTTON_ZR:
-            scale *= 1.2f;
+            // no multiplier for ZL/ZR
             break;
 
         case ButtonType.N3DS_BUTTON_START:
@@ -526,7 +529,7 @@ public final class InputOverlay extends View {
         case ButtonType.EMU_COMBO_KEY_1:
         case ButtonType.EMU_COMBO_KEY_2:
         case ButtonType.EMU_COMBO_KEY_3:
-            scale *= 0.9f;
+            // no multiplier for combo keys
             break;
         }
 
@@ -558,7 +561,7 @@ public final class InputOverlay extends View {
         final int defaultResId = R.drawable.dpad;
         final int pressedOneDirectionResId = R.drawable.dpad_pressed_one;
         final int pressedTwoDirectionsResId = R.drawable.dpad_pressed_two;
-        float scale = 0.32f * (sControllerScale + 100) / 100;
+        float scale = 2.4f * (100.0f * (sControllerScale + 70)) / 58000.0f;
 
         Bitmap defaultBitmap = getInputBitmap(defaultResId, scale);
         Bitmap onePressedBitmap = getInputBitmap(pressedOneDirectionResId, scale);
@@ -589,7 +592,7 @@ public final class InputOverlay extends View {
         int resOuter = R.drawable.joystick_range;
         int defaultResInner = R.drawable.joystick;
         int pressedResInner = R.drawable.joystick_pressed;
-        float scale = 0.275f * (sControllerScale + 100) / 100;
+        float scale = 2.0f * (100.0f * (sControllerScale + 70)) / 58000.0f;
 
         if (joystick == ButtonType.N3DS_STICK_X) {
             resOuter = R.drawable.c_stick_range;
