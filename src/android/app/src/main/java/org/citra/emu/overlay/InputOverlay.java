@@ -110,12 +110,12 @@ public final class InputOverlay extends View {
         }
 
         sUseHapticFeedback = mPreferences.getBoolean(InputOverlay.PREF_HAPTIC_FEEDBACK, true);
+        loadFromLayoutIni();
         sJoystickRelative = mPreferences.getBoolean(InputOverlay.PREF_JOYSTICK_RELATIVE, true);
         sControllerScale = mPreferences.getInt(InputOverlay.PREF_CONTROLLER_SCALE, 50);
         sControllerAlpha = mPreferences.getInt(InputOverlay.PREF_CONTROLLER_ALPHA, 100);
         sHideInputOverlay = mPreferences.getBoolean(InputOverlay.PREF_CONTROLLER_HIDE, false);
         sShowRightJoystick = mPreferences.getBoolean(InputOverlay.PREF_SHOW_RIGHT_JOYSTICK, false);
-        loadFromLayoutIni();
     }
 
     private void defaultOverlay() {
@@ -339,6 +339,12 @@ public final class InputOverlay extends View {
                     float x = Float.parseFloat(parts[0]) / 100.0f;
                     float y = Float.parseFloat(parts[1]) / 100.0f;
                     int visible = Integer.parseInt(parts[3]);
+                    if (sControllerScale == 50) { // only apply from ini if not already set by user
+                        int scale = Integer.parseInt(parts[2]);
+                        if (scale >= 0 && scale <= 200) {
+                            sControllerScale = scale;
+                        }
+                    }
                     int scale = Integer.parseInt(parts[2]);
                     scale = scale - 100; // ini stores sControllerScale + 100
                     if (scale > 0) {
