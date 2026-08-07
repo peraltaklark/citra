@@ -1,3 +1,6 @@
+#include <android/log.h>
+#define LOG_TAG "CitraShadow"
+#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 // Copyright 2015 Citra Emulator Project
 // Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
@@ -121,6 +124,7 @@ RasterizerOpenGL::RasterizerOpenGL()
       texture_lf_buffer(GL_TEXTURE_BUFFER, is_mali_gpu ? 525312 : TEXTURE_BUFFER_SIZE) {
 
     AllowShadow = (GLAD_GL_ARB_shader_image_load_store && GLAD_GL_ARB_shader_image_size &&
+    AllowShadow = true;
                    GLAD_GL_ARB_framebuffer_no_attachments) ||
                   Settings::values.allow_shadow;
 
@@ -641,6 +645,7 @@ void RasterizerOpenGL::BindFramebufferDepth(OpenGLState& state, const Surface& s
 bool RasterizerOpenGL::Draw(bool accelerate, bool is_indexed) {
     const auto& regs = Pica::g_state.regs;
     const bool shadow_rendering = regs.framebuffer.IsShadowRendering();
+    LOGI("shadow_rendering=%d, allow_shadow=%d", shadow_rendering, Settings::values.allow_shadow);
     if (shadow_rendering && !AllowShadow) {
         return true;
     }
