@@ -514,12 +514,16 @@ public final class InputOverlay extends View {
             break;
         case ButtonType.N3DS_BUTTON_ZL:
         case ButtonType.N3DS_BUTTON_ZR:
-            // no multiplier for ZL/ZR
+            scale *= 1.4f;
             break;
 
         case ButtonType.N3DS_BUTTON_START:
         case ButtonType.N3DS_BUTTON_SELECT:
             scale *= 0.8f;
+            break;
+
+        case ButtonType.N3DS_BUTTON_HOME:
+            scale *= 0.7f;
             break;
 
         case ButtonType.N3DS_BUTTON_DEBUG:
@@ -529,7 +533,7 @@ public final class InputOverlay extends View {
         case ButtonType.EMU_COMBO_KEY_1:
         case ButtonType.EMU_COMBO_KEY_2:
         case ButtonType.EMU_COMBO_KEY_3:
-            // no multiplier for combo keys
+            scale *= 0.9f;
             break;
         }
 
