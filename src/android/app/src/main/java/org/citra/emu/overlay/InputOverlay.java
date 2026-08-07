@@ -115,6 +115,7 @@ public final class InputOverlay extends View {
         sControllerAlpha = mPreferences.getInt(InputOverlay.PREF_CONTROLLER_ALPHA, 100);
         sHideInputOverlay = mPreferences.getBoolean(InputOverlay.PREF_CONTROLLER_HIDE, false);
         sShowRightJoystick = mPreferences.getBoolean(InputOverlay.PREF_SHOW_RIGHT_JOYSTICK, false);
+        loadFromLayoutIni();
     }
 
     private void defaultOverlay() {
@@ -322,6 +323,53 @@ public final class InputOverlay extends View {
         return false;
     }
 
+    private void loadFromLayoutIni() {
+        Map<String, String> layout = CitraDirectory.loadInputLayoutConfig(getContext());
+        if (layout.isEmpty()) return;
+        SharedPreferences.Editor editor = mPreferences.edit();
+        String suffix = mIsLandscape ? "_landscape" : "_portrait";
+        for (Map.Entry<String, String> entry : layout.entrySet()) {
+            if (!entry.getKey().endsWith(suffix)) continue;
+            String name = entry.getKey().replace(suffix, "");
+            int buttonId = getButtonIdFromIniName(name);
+            if (buttonId == -1) continue;
+            String[] parts = entry.getValue().split(",");
+            if (parts.length >= 4) {
+                try {
+                    float x = Float.parseFloat(parts[0]) / 100.0f;
+                    float y = Float.parseFloat(parts[1]) / 100.0f;
+                    int visible = Integer.parseInt(parts[3]);
+                    editor.putFloat(buttonId + "_X", x);
+                    editor.putFloat(buttonId + "_Y", y);
+                    editor.putFloat(buttonId + "_XX", x);
+                    editor.putFloat(buttonId + "_YY", y);
+                    mInputVisibles.put(buttonId, visible != 0);
+                } catch (NumberFormatException ignored) {}
+            }
+        }
+        editor.apply();
+    }
+
+    private int getButtonIdFromIniName(String name) {
+        if (name.equals("button_a")) return ButtonType.N3DS_BUTTON_A;
+        if (name.equals("button_b")) return ButtonType.N3DS_BUTTON_B;
+        if (name.equals("button_x")) return ButtonType.N3DS_BUTTON_X;
+        if (name.equals("button_y")) return ButtonType.N3DS_BUTTON_Y;
+        if (name.equals("button_l")) return ButtonType.N3DS_BUTTON_L;
+        if (name.equals("button_r")) return ButtonType.N3DS_BUTTON_R;
+        if (name.equals("button_zl")) return ButtonType.N3DS_BUTTON_ZL;
+        if (name.equals("button_zr")) return ButtonType.N3DS_BUTTON_ZR;
+        if (name.equals("button_start")) return ButtonType.N3DS_BUTTON_START;
+        if (name.equals("button_select")) return ButtonType.N3DS_BUTTON_SELECT;
+        if (name.equals("button_home")) return ButtonType.N3DS_BUTTON_HOME;
+        if (name.equals("dpad")) return ButtonType.N3DS_DPAD_UP;
+        if (name.equals("joystick")) return ButtonType.N3DS_CPAD_X;
+        if (name.equals("c_stick")) return ButtonType.N3DS_STICK_X;
+        if (name.equals("button_one")) return ButtonType.EMU_COMBO_KEY_1;
+        if (name.equals("button_two")) return ButtonType.EMU_COMBO_KEY_2;
+        if (name.equals("button_three")) return ButtonType.EMU_COMBO_KEY_3;
+        return -1;
+    }
     private void saveToLayoutIni(int buttonId, float x, float y) {
         String suffix = mIsLandscape ? "_landscape" : "_portrait";
         String name = getButtonIniName(buttonId);
@@ -364,6 +412,7 @@ public final class InputOverlay extends View {
         sPrefsEditor.putFloat(buttonId + (mIsLandscape ? "_XX" : "_X"), x);
         sPrefsEditor.putFloat(buttonId + (mIsLandscape ? "_YY" : "_Y"), y);
         sPrefsEditor.apply();
+        saveToLayoutIni(buttonId, x, y);
     }
 
     public void refreshControls() {
