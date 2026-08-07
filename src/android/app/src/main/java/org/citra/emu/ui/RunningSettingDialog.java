@@ -571,8 +571,8 @@ public class RunningSettingDialog extends DialogFragment {
             switch (item.getSetting()) {
             case SettingsItem.SETTING_CONTROLLER_SCALE:
                 mQuickActionButton.setVisibility(View.GONE);
-                mSeekBar.setMax(200);
-                mSeekBar.setProgress(clamp(item.getValue(), 0, 200));
+                mSeekBar.setMax(100);
+                mSeekBar.setProgress(clamp(item.getValue(), 0, 100));
                 break;
             case SettingsItem.SETTING_CONTROLLER_ALPHA:
                 mQuickActionButton.setVisibility(View.GONE);
