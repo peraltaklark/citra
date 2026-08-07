@@ -371,6 +371,7 @@ public final class InputOverlay extends View {
         return -1;
     }
     private void saveToLayoutIni(int buttonId, float x, float y) {
+        android.util.Log.i("citra", "saveToLayoutIni called: buttonId=" + buttonId + " x=" + x + " y=" + y);
         String suffix = mIsLandscape ? "_landscape" : "_portrait";
         String name = getButtonIniName(buttonId);
         if (name == null) return;
