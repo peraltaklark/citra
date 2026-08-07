@@ -1418,10 +1418,6 @@ Java_org_citra_emu_utils_NetPlayManager_NetPlayGetConsoleId(JNIEnv* env, jclass 
     return JniHelper::Wrap(NetPlayGetConsoleId());
 }
 
-#ifdef __cplusplus
-}
-#endif
-
 JNIEXPORT jint JNICALL Java_org_citra_emu_NativeLibrary_getConfigInteger(
     JNIEnv* env, jclass clazz, jstring key) {
     std::string keyStr = JniHelper::Unwrap(key);
@@ -1430,4 +1426,8 @@ JNIEXPORT jint JNICALL Java_org_citra_emu_NativeLibrary_getConfigInteger(
     }
     return 0;
 }
+
+#ifdef __cplusplus
+}
+#endif
 
