@@ -491,6 +491,7 @@ static void UpdateDisplayRotation() {
     }
 }
 
+
 JNIEXPORT void JNICALL Java_org_citra_emu_NativeLibrary_setConfigInteger(
     JNIEnv* env, jclass clazz, jstring key, jint value) {
     std::string keyStr = JniHelper::Unwrap(key);
@@ -498,6 +499,15 @@ JNIEXPORT void JNICALL Java_org_citra_emu_NativeLibrary_setConfigInteger(
         Config::Set(Config::INPUT_OVERLAY_SCALE, static_cast<u16>(value));
         Config::Save();
     }
+}
+
+JNIEXPORT jint JNICALL Java_org_citra_emu_NativeLibrary_getConfigInteger(
+    JNIEnv* env, jclass clazz, jstring key) {
+    std::string keyStr = JniHelper::Unwrap(key);
+    if (keyStr == "input_overlay_scale") {
+        return Config::Get(Config::INPUT_OVERLAY_SCALE);
+    }
+    return 0;
 }
 #ifdef __cplusplus
 extern "C" {
@@ -1426,9 +1436,15 @@ Java_org_citra_emu_utils_NetPlayManager_NetPlayGetConsoleId(JNIEnv* env, jclass 
     return JniHelper::Wrap(NetPlayGetConsoleId());
 }
 
-#ifdef __cplusplus
+
+JNIEXPORT void JNICALL Java_org_citra_emu_NativeLibrary_setConfigInteger(
+    JNIEnv* env, jclass clazz, jstring key, jint value) {
+    std::string keyStr = JniHelper::Unwrap(key);
+    if (keyStr == "input_overlay_scale") {
+        Config::Set(Config::INPUT_OVERLAY_SCALE, static_cast<u16>(value));
+        Config::Save();
+    }
 }
-#endif
 
 JNIEXPORT jint JNICALL Java_org_citra_emu_NativeLibrary_getConfigInteger(
     JNIEnv* env, jclass clazz, jstring key) {
@@ -1438,4 +1454,8 @@ JNIEXPORT jint JNICALL Java_org_citra_emu_NativeLibrary_getConfigInteger(
     }
     return 0;
 }
+#ifdef __cplusplus
+}
+#endif
+
 
