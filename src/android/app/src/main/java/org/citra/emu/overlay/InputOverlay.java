@@ -73,7 +73,7 @@ public final class InputOverlay extends View {
             {ButtonType.EMU_COMBO_KEY_3, R.integer.COMBO_KEY3_X, R.integer.COMBO_KEY3_Y, R.drawable.three, R.drawable.three_pressed},
     };
 
-    public static int sControllerScale = 50;
+    public static int sControllerScale = 40;
     public static int sControllerAlpha = 100;
     public static boolean sJoystickRelative = true;
     public static boolean sHideInputOverlay = false;
@@ -112,7 +112,7 @@ public final class InputOverlay extends View {
         sUseHapticFeedback = mPreferences.getBoolean(InputOverlay.PREF_HAPTIC_FEEDBACK, true);
         loadFromLayoutIni();
         sJoystickRelative = mPreferences.getBoolean(InputOverlay.PREF_JOYSTICK_RELATIVE, true);
-        sControllerScale = mPreferences.getInt(InputOverlay.PREF_CONTROLLER_SCALE, 50);
+        sControllerScale = mPreferences.getInt(InputOverlay.PREF_CONTROLLER_SCALE, 40);
         sControllerAlpha = mPreferences.getInt(InputOverlay.PREF_CONTROLLER_ALPHA, 100);
         sHideInputOverlay = mPreferences.getBoolean(InputOverlay.PREF_CONTROLLER_HIDE, false);
         sShowRightJoystick = mPreferences.getBoolean(InputOverlay.PREF_SHOW_RIGHT_JOYSTICK, false);
@@ -339,18 +339,6 @@ public final class InputOverlay extends View {
                     float x = Float.parseFloat(parts[0]) / 100.0f;
                     float y = Float.parseFloat(parts[1]) / 100.0f;
                     int visible = Integer.parseInt(parts[3]);
-                    if (sControllerScale == 50) { // only apply from ini if not already set by user
-                        int scale = Integer.parseInt(parts[2]);
-                        if (scale >= 0 && scale <= 200) {
-                            sControllerScale = scale;
-                        }
-                    }
-                    int scale = Integer.parseInt(parts[2]);
-                    scale = scale - 100; // ini stores sControllerScale + 100
-                    if (scale > 0) {
-                        sControllerScale = scale;
-                        editor.putInt(InputOverlay.PREF_CONTROLLER_SCALE, scale);
-                    }
                     editor.putFloat(buttonId + "_X", x);
                     editor.putFloat(buttonId + "_Y", y);
                     editor.putFloat(buttonId + "_XX", x);
@@ -387,10 +375,27 @@ public final class InputOverlay extends View {
         String name = getButtonIniName(buttonId);
         if (name == null) return;
         String key = name + suffix;
-        String value = (int)(x * 100) + "," + (int)(y * 100) + "," + (sControllerScale + 100) + "," + (mInputVisibles.get(buttonId) != null && mInputVisibles.get(buttonId) ? 1 : 0);
-        if (mLayoutMap == null) mLayoutMap = new HashMap<>();
-        mLayoutMap.put(key, value);
-        CitraDirectory.saveInputLayoutConfig(getContext(), mLayoutMap);
+        String value = (int)(x * 100) + "," + (int)(y * 100) + "," + sControllerScale + "," + (mInputVisibles.get(buttonId) != null && mInputVisibles.get(buttonId) ? 1 : 0);
+        
+        Map<String, String> layout = CitraDirectory.loadInputLayoutConfig(getContext());
+        if (layout == null) layout = new HashMap<>();
+        layout.put(key, value);
+        
+        for (int[] config : mInputConfigs) {
+            int id = config[0];
+            String n = getButtonIniName(id);
+            if (n == null) continue;
+            String k = n + suffix;
+            if (!layout.containsKey(k)) {
+                float bx = mPreferences.getFloat(id + (mIsLandscape ? "_XX" : "_X"), 0f);
+                float by = mPreferences.getFloat(id + (mIsLandscape ? "_YY" : "_Y"), 0.5f);
+                int vis = mInputVisibles.get(id) != null && mInputVisibles.get(id) ? 1 : 0;
+                String v = (int)(bx * 100) + "," + (int)(by * 100) + "," + sControllerScale + "," + vis;
+                layout.put(k, v);
+            }
+        }
+        
+        CitraDirectory.saveInputLayoutConfig(getContext(), layout);
     }
 
     private String getButtonIniName(int buttonId) {
