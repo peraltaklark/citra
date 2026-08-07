@@ -988,6 +988,7 @@ public class RunningSettingDialog extends DialogFragment {
             if (mInitialControllerScale != mControllerScale) {
                 editor.putInt(InputOverlay.PREF_CONTROLLER_SCALE, mControllerScale);
                 InputOverlay.sControllerScale = mControllerScale;
+                NativeLibrary.setConfigInteger("input_overlay_scale", mControllerScale);
             }
             if (mInitialControllerAlpha != mControllerAlpha) {
                 editor.putInt(InputOverlay.PREF_CONTROLLER_ALPHA, mControllerAlpha);
