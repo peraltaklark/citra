@@ -101,10 +101,10 @@ public final class CitraDirectory {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 sInitState = INIT_LEGACY;
                 if (Environment.isExternalStorageManager()) {
-                externalPath = Environment.getExternalStorageDirectory();
-            } else {
-                externalPath = context.getExternalFilesDir(null);
-            }
+                    externalPath = Environment.getExternalStorageDirectory();
+                } else {
+                    externalPath = context.getExternalFilesDir(null);
+                }
             } else if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
                 sInitState = INIT_LEGACY;
                 externalPath = Environment.getExternalStorageDirectory();
@@ -129,10 +129,10 @@ public final class CitraDirectory {
                 loadTitleDB(context.getAssets());
                 NativeLibrary.ensureLoaded(context);
                 NativeLibrary.SetUserPath(mUserPath);
-        String configuredPath = loadConfiguredCorePath(SettingsFile.KEY_USER_PATH);
-        if (!configuredPath.isEmpty()) {
-            mUserPath = configuredPath;
-        }
+                String configuredPath = loadConfiguredCorePath(SettingsFile.KEY_USER_PATH);
+                if (!configuredPath.isEmpty()) {
+                    mUserPath = configuredPath;
+                }
                 setSDMCDirectoryOverride(loadConfiguredSDMCDirectory());
                 setStatesDirectoryOverride(loadConfiguredStatesDirectory());
                 new InitTask().execute(context);
@@ -256,10 +256,6 @@ public final class CitraDirectory {
     }
 
     public static String getUserDirectory() {
-        String configuredPath = loadConfiguredCorePath(SettingsFile.KEY_USER_PATH);
-        if (!configuredPath.isEmpty()) {
-            return configuredPath;
-        }
         return mUserPath;
     }
 
