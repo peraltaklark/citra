@@ -64,7 +64,6 @@
             android:name=".ui.EmulationActivity"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize"
             android:launchMode="singleTop"
-            android:screenOrientation="sensorLandscape"
             android:exported="true"
             android:theme="@style/EmulationTheme" />
         <activity
