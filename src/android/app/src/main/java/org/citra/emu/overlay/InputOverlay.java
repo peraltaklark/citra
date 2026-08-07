@@ -85,7 +85,6 @@ public final class InputOverlay extends View {
     private final HashMap<Integer, Boolean> mInputVisibles = new HashMap<>();
     private int mJoystickIndex = 0;
     private boolean mIsLandscape = false;
-        sControllerScale = NativeLibrary.getConfigInteger("input_overlay_scale");
     private boolean mInEditMode = false;
     private boolean mBeingMoved = false;
     private int mInEditPosX = 0;
@@ -113,12 +112,11 @@ public final class InputOverlay extends View {
 
         sUseHapticFeedback = mPreferences.getBoolean(InputOverlay.PREF_HAPTIC_FEEDBACK, true);
         loadFromLayoutIni();
+        sControllerScale = mPreferences.getInt(InputOverlay.PREF_CONTROLLER_SCALE, 40);
         int nativeScale = NativeLibrary.getConfigInteger("input_overlay_scale");
         if (nativeScale > 0) {
             sControllerScale = nativeScale;
         }
-        sJoystickRelative = mPreferences.getBoolean(InputOverlay.PREF_JOYSTICK_RELATIVE, true);
-        sControllerScale = mPreferences.getInt(InputOverlay.PREF_CONTROLLER_SCALE, 40);
         sControllerAlpha = mPreferences.getInt(InputOverlay.PREF_CONTROLLER_ALPHA, 100);
         sHideInputOverlay = mPreferences.getBoolean(InputOverlay.PREF_CONTROLLER_HIDE, false);
         sShowRightJoystick = mPreferences.getBoolean(InputOverlay.PREF_SHOW_RIGHT_JOYSTICK, false);
@@ -441,9 +439,8 @@ public final class InputOverlay extends View {
     public void refreshControls() {
         int previousSize = mInputObjects.size();
         mJoystickIndex = 0;
-        mIsLandscape =
+        mIsLandscape = getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
         sControllerScale = NativeLibrary.getConfigInteger("input_overlay_scale");
-            getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
         // Remove all the overlay buttons
         mInputObjects.clear();
         mOverlayPointer = new InputOverlayPointer();
