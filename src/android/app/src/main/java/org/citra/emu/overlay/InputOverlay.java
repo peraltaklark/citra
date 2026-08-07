@@ -19,9 +19,11 @@ import android.view.View;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Map;
 
 import org.citra.emu.NativeLibrary.ButtonType;
 import org.citra.emu.R;
+import org.citra.emu.utils.CitraDirectory;
 import org.citra.emu.ui.EmulationActivity;
 
 public final class InputOverlay extends View {
@@ -131,7 +133,6 @@ public final class InputOverlay extends View {
         }
         sPrefsEditor.putBoolean(PREF_CONTROLLER_INIT, true);
         sPrefsEditor.apply();
-        saveToLayoutIni(buttonId, x, y);
     }
 
     @Override
@@ -363,7 +364,6 @@ public final class InputOverlay extends View {
         sPrefsEditor.putFloat(buttonId + (mIsLandscape ? "_XX" : "_X"), x);
         sPrefsEditor.putFloat(buttonId + (mIsLandscape ? "_YY" : "_Y"), y);
         sPrefsEditor.apply();
-        saveToLayoutIni(buttonId, x, y);
     }
 
     public void refreshControls() {
