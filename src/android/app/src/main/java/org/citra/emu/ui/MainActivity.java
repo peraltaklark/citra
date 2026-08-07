@@ -111,7 +111,7 @@ public final class MainActivity extends AppCompatActivity {
         protected void refreshLegacy() {
             List<File> dirs = new ArrayList<>();
             if (isInstalled) {
-                dirs.add(new File(CitraDirectory.getNANDDirectory() + "/title/00040000"));
+                dirs.add(new File(CitraDirectory.getNandDirectory() + "/title/00040000"));
                 dirs.add(new File(CitraDirectory.getSystemApplicationDirectory()));
                 dirs.add(new File(CitraDirectory.getSystemAppletDirectory()));
                 dirs.add(new File(CitraDirectory.getSDMCDirectory()));
