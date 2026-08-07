@@ -440,6 +440,7 @@ public final class NativeLibrary {
      */
     public static native void SetUserPath(String path);
     public static native int getConfigInteger(String key);
+    public static native void setConfigInteger(String key, int value);
     public static native void SetStatesPath(String path);
     public static native void SetSDMCPath(String path);
     public static native void loadAmiibo(String path);
