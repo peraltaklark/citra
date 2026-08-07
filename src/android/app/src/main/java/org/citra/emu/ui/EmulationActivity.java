@@ -512,5 +512,6 @@ public final class EmulationActivity extends AppCompatActivity {
         dstHeight = (int)(dstHeight * scale);
         origin.recycle();
         return Bitmap.createScaledBitmap(bitmap, dstWidth, dstHeight, true);
+        android.util.Log.i("citra", "getInputBitmap id=" + id + " scale=" + scale + " dst=" + dstWidth + "x" + dstHeight);
     }
 }
