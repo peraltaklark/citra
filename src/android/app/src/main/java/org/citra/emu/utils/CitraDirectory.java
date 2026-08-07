@@ -637,6 +637,7 @@ public final class CitraDirectory {
 
     public static void saveInputLayoutConfig(Context context, Map<String, String> layout) {
         try {
+        android.util.Log.i("citra", "Saving layout, size=" + layout.size() + " path=" + getConfigDirectory() + "/input-layout.ini");
             FileOutputStream fos = new FileOutputStream(getConfigDirectory() + "/input-layout.ini");
             OutputStreamWriter writer = new OutputStreamWriter(fos);
             writer.write("// landscape layout = X[-100,100], Y[-100,100], SCALE[0,200], VISIBLE[0,1]\n");
