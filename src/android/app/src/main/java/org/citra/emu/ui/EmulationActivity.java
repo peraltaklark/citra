@@ -509,6 +509,7 @@ public final class EmulationActivity extends AppCompatActivity {
         int dstHeight = bitmap.getHeight();
         // adjust scale by default theme bitmap width
         scale *= oriWidth / dstWidth;
+        android.util.Log.i("citra", "getInputBitmap ratio=" + oriWidth + "/" + dstWidth + " finalScale=" + scale);
         dstWidth = (int)(dstWidth * scale);
         dstHeight = (int)(dstHeight * scale);
         origin.recycle();
@@ -516,4 +517,3 @@ public final class EmulationActivity extends AppCompatActivity {
         return Bitmap.createScaledBitmap(bitmap, dstWidth, dstHeight, true);
     }
 }
-
