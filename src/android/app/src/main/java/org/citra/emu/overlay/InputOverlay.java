@@ -340,6 +340,7 @@ public final class InputOverlay extends View {
                     float y = Float.parseFloat(parts[1]) / 100.0f;
                     int visible = Integer.parseInt(parts[3]);
                     int scale = Integer.parseInt(parts[2]);
+                    scale = scale - 100; // ini stores sControllerScale + 100
                     if (scale > 0) {
                         sControllerScale = scale;
                         editor.putInt(InputOverlay.PREF_CONTROLLER_SCALE, scale);
