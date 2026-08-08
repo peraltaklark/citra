@@ -176,6 +176,74 @@ RasterizerOpenGL::RasterizerOpenGL()
         Common::AlignUp<std::size_t>(sizeof(UniformData), uniform_buffer_alignment);
     uniform_size_aligned_light =
         Common::AlignUp<std::size_t>(sizeof(UniformLightData), uniform_buffer_alignment);
+    // Set vertex attributes for software shader path
+    state.draw.vertex_array = sw_vao.handle;
+    state.draw.vertex_buffer = vertex_buffer.GetHandle();
+    state.Apply();
+
+    glVertexAttribPointer(ATTRIBUTE_POSITION, 4, GL_FLOAT, GL_FALSE, sizeof(HardwareVertex),
+                          (GLvoid*)offsetof(HardwareVertex, position));
+    glEnableVertexAttribArray(ATTRIBUTE_POSITION);
+
+    glVertexAttribPointer(ATTRIBUTE_COLOR, 4, GL_FLOAT, GL_FALSE, sizeof(HardwareVertex),
+                          (GLvoid*)offsetof(HardwareVertex, color));
+    glEnableVertexAttribArray(ATTRIBUTE_COLOR);
+
+    glVertexAttribPointer(ATTRIBUTE_TEXCOORD0, 2, GL_FLOAT, GL_FALSE, sizeof(HardwareVertex),
+                          (GLvoid*)offsetof(HardwareVertex, tex_coord0));
+    glVertexAttribPointer(ATTRIBUTE_TEXCOORD1, 2, GL_FLOAT, GL_FALSE, sizeof(HardwareVertex),
+                          (GLvoid*)offsetof(HardwareVertex, tex_coord1));
+    glVertexAttribPointer(ATTRIBUTE_TEXCOORD2, 2, GL_FLOAT, GL_FALSE, sizeof(HardwareVertex),
+                          (GLvoid*)offsetof(HardwareVertex, tex_coord2));
+    glEnableVertexAttribArray(ATTRIBUTE_TEXCOORD0);
+    glEnableVertexAttribArray(ATTRIBUTE_TEXCOORD1);
+    glEnableVertexAttribArray(ATTRIBUTE_TEXCOORD2);
+
+    glVertexAttribPointer(ATTRIBUTE_TEXCOORD0_W, 1, GL_FLOAT, GL_FALSE, sizeof(HardwareVertex),
+                          (GLvoid*)offsetof(HardwareVertex, tex_coord0_w));
+    glEnableVertexAttribArray(ATTRIBUTE_TEXCOORD0_W);
+
+    glVertexAttribPointer(ATTRIBUTE_NORMQUAT, 4, GL_FLOAT, GL_FALSE, sizeof(HardwareVertex),
+                          (GLvoid*)offsetof(HardwareVertex, normquat));
+    glEnableVertexAttribArray(ATTRIBUTE_NORMQUAT);
+
+    glVertexAttribPointer(ATTRIBUTE_VIEW, 3, GL_FLOAT, GL_FALSE, sizeof(HardwareVertex),
+                          (GLvoid*)offsetof(HardwareVertex, view));
+    glEnableVertexAttribArray(ATTRIBUTE_VIEW);
+
+    // Create a 1x1 clear texture to use in the NULL case,
+    // instead of OpenGL's default of solid black
+    // For some reason alpha 0 wraps around to 1.0, so use 1/255 instead
+    u8 null_data[4] = {0, 0, 0, 1};
+    glActiveTexture(TextureUnits::PicaTexture(0).Enum());
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, null_data);
+
+    glActiveTexture(TextureUnits::TextureBufferLUT_LF.Enum());
+    glTexBuffer(GL_TEXTURE_BUFFER, GL_RG32F, texture_lf_buffer.GetHandle());
+    glActiveTexture(TextureUnits::TextureBufferLUT_RG.Enum());
+    glTexBuffer(GL_TEXTURE_BUFFER, GL_RG32F, texture_buffer.GetHandle());
+    glActiveTexture(TextureUnits::TextureBufferLUT_RGBA.Enum());
+    glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, texture_buffer.GetHandle());
+
+    // restore
+    state.texture_units[0].texture_2d = 0;
+    // Bind index buffer for hardware shader path
+    state.draw.vertex_array = hw_vao.handle;
+    state.Apply();
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer.GetHandle());
+
+    // 845需要开启分离着色器，但开启后Mali GPU会挂掉，究极日也有显示问题！
+    const bool use_separable_shader = Settings::values.use_separable_shader;
+    shader_program_manager = std::make_unique<ShaderProgramManager>(use_separable_shader);
+
+    // init opengl state
+    glEnable(GL_CULL_FACE);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_STENCIL_TEST);
+    glDisable(GL_BLEND);
+
+    SyncEntireState();
 }
 
 RasterizerOpenGL::~RasterizerOpenGL() = default;
@@ -283,81 +351,6 @@ void RasterizerOpenGL::DestroyShadowTextures() {
     shadow_textures_created = false;
 }
 
-        Common::AlignUp<std::size_t>(sizeof(VSUniformData), uniform_buffer_alignment);
-    uniform_size_aligned_fs =
-        Common::AlignUp<std::size_t>(sizeof(UniformData), uniform_buffer_alignment);
-    uniform_size_aligned_light =
-        Common::AlignUp<std::size_t>(sizeof(UniformLightData), uniform_buffer_alignment);
-
-    // Set vertex attributes for software shader path
-    state.draw.vertex_array = sw_vao.handle;
-    state.draw.vertex_buffer = vertex_buffer.GetHandle();
-    state.Apply();
-
-    glVertexAttribPointer(ATTRIBUTE_POSITION, 4, GL_FLOAT, GL_FALSE, sizeof(HardwareVertex),
-                          (GLvoid*)offsetof(HardwareVertex, position));
-    glEnableVertexAttribArray(ATTRIBUTE_POSITION);
-
-    glVertexAttribPointer(ATTRIBUTE_COLOR, 4, GL_FLOAT, GL_FALSE, sizeof(HardwareVertex),
-                          (GLvoid*)offsetof(HardwareVertex, color));
-    glEnableVertexAttribArray(ATTRIBUTE_COLOR);
-
-    glVertexAttribPointer(ATTRIBUTE_TEXCOORD0, 2, GL_FLOAT, GL_FALSE, sizeof(HardwareVertex),
-                          (GLvoid*)offsetof(HardwareVertex, tex_coord0));
-    glVertexAttribPointer(ATTRIBUTE_TEXCOORD1, 2, GL_FLOAT, GL_FALSE, sizeof(HardwareVertex),
-                          (GLvoid*)offsetof(HardwareVertex, tex_coord1));
-    glVertexAttribPointer(ATTRIBUTE_TEXCOORD2, 2, GL_FLOAT, GL_FALSE, sizeof(HardwareVertex),
-                          (GLvoid*)offsetof(HardwareVertex, tex_coord2));
-    glEnableVertexAttribArray(ATTRIBUTE_TEXCOORD0);
-    glEnableVertexAttribArray(ATTRIBUTE_TEXCOORD1);
-    glEnableVertexAttribArray(ATTRIBUTE_TEXCOORD2);
-
-    glVertexAttribPointer(ATTRIBUTE_TEXCOORD0_W, 1, GL_FLOAT, GL_FALSE, sizeof(HardwareVertex),
-                          (GLvoid*)offsetof(HardwareVertex, tex_coord0_w));
-    glEnableVertexAttribArray(ATTRIBUTE_TEXCOORD0_W);
-
-    glVertexAttribPointer(ATTRIBUTE_NORMQUAT, 4, GL_FLOAT, GL_FALSE, sizeof(HardwareVertex),
-                          (GLvoid*)offsetof(HardwareVertex, normquat));
-    glEnableVertexAttribArray(ATTRIBUTE_NORMQUAT);
-
-    glVertexAttribPointer(ATTRIBUTE_VIEW, 3, GL_FLOAT, GL_FALSE, sizeof(HardwareVertex),
-                          (GLvoid*)offsetof(HardwareVertex, view));
-    glEnableVertexAttribArray(ATTRIBUTE_VIEW);
-
-    // Create a 1x1 clear texture to use in the NULL case,
-    // instead of OpenGL's default of solid black
-    // For some reason alpha 0 wraps around to 1.0, so use 1/255 instead
-    u8 null_data[4] = {0, 0, 0, 1};
-    glActiveTexture(TextureUnits::PicaTexture(0).Enum());
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, null_data);
-
-    glActiveTexture(TextureUnits::TextureBufferLUT_LF.Enum());
-    glTexBuffer(GL_TEXTURE_BUFFER, GL_RG32F, texture_lf_buffer.GetHandle());
-    glActiveTexture(TextureUnits::TextureBufferLUT_RG.Enum());
-    glTexBuffer(GL_TEXTURE_BUFFER, GL_RG32F, texture_buffer.GetHandle());
-    glActiveTexture(TextureUnits::TextureBufferLUT_RGBA.Enum());
-    glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, texture_buffer.GetHandle());
-
-    // restore
-    state.texture_units[0].texture_2d = 0;
-    // Bind index buffer for hardware shader path
-    state.draw.vertex_array = hw_vao.handle;
-    state.Apply();
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer.GetHandle());
-
-    // 845需要开启分离着色器，但开启后Mali GPU会挂掉，究极日也有显示问题！
-    const bool use_separable_shader = Settings::values.use_separable_shader;
-    shader_program_manager = std::make_unique<ShaderProgramManager>(use_separable_shader);
-
-    // init opengl state
-    glEnable(GL_CULL_FACE);
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_STENCIL_TEST);
-    glDisable(GL_BLEND);
-
-    SyncEntireState();
-}
 
 /**
  * This is a helper function to resolve an issue when interpolating opposite quaternions. See below
