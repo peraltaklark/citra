@@ -1441,33 +1441,23 @@ std::string GenerateFragmentShader(const PicaFSConfig& config, bool separable_sh
         out += "#extension GL_ARB_separate_shader_objects : enable\n";
     }
 
+    if (AllowShadow && state.shadow_rendering) {
+        shadow_rendering = true;
+    }
+
     if (GLES) {
-        /*if (state.logic_op != FramebufferRegs::LogicOp::Copy) {
-            if (GLAD_GL_EXT_shader_framebuffer_fetch) {
-                out += "#extension GL_EXT_shader_framebuffer_fetch : enable\n"
-                       "#define FB_FETCH_VALUE color\n"
-                       "#define FRAGMENT_INOUT inout\n";
-                shader_logic_ops = true;
-            } else if (GLAD_GL_ARM_shader_framebuffer_fetch) {
-                out += "#extension GL_ARM_shader_framebuffer_fetch : enable\n"
-                       "#define FB_FETCH_VALUE gl_LastFragColorARM\n"
-                       "#define FRAGMENT_INOUT out\n";
-                shader_logic_ops = true;
-            }
-        }*/
-        if (AllowShadow && state.shadow_rendering) {
-            shadow_rendering = true;
+        if (shadow_rendering) {
+            out += "#if defined(GL_ANDROID_extension_pack_es31a)\n"
+                   "#extension GL_ANDROID_extension_pack_es31a : enable\n"
+                   "#endif\n";
         }
         out += fragment_shader_precision_OES;
     } else {
-        out += R"(
-out += "#if defined(GL_ANDROID_extension_pack_es31a)\n";
-out += "#extension GL_ANDROID_extension_pack_es31a : enable\n";
-out += "#endif // defined(GL_ANDROID_extension_pack_es31a)\n";
-#extension GL_ARB_shader_image_size : enable
-)";
+        if (shadow_rendering) {
+            out += "#extension GL_ARB_shader_image_load_store : enable\n"
+                   "#extension GL_ARB_shader_image_size : enable\n";
+        }
     }
-
     out += GetVertexInterfaceDeclaration(false, separable_shader);
     out += R"(
 #ifndef CITRA_GLES
