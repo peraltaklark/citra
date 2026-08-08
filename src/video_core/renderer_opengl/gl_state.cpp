@@ -206,6 +206,7 @@ void OpenGLState::Apply() const {
 
     // Shadow Images
     if (image_shadow_buffer != cur_state.image_shadow_buffer) {
+        static int once = 0; if (!once++ && image_shadow_buffer != 0) LOG_INFO(Render_OpenGL, "First shadow buffer binding: handle=%u", image_shadow_buffer);
         glBindImageTexture(ImageUnits::ShadowBuffer, image_shadow_buffer, 0, GL_FALSE, 0,
                            GL_READ_WRITE, GL_R32UI);
     }
