@@ -1445,6 +1445,10 @@ std::string GenerateFragmentShader(const PicaFSConfig& config, bool separable_sh
         shadow_rendering = true;
     }
 
+    if (shadow_rendering && GLAD_GL_ANDROID_extension_pack_es31a) {
+        out += "#define GL_ANDROID_extension_pack_es31a\n";
+    }
+
     if (GLES) {
         if (shadow_rendering) {
             out += "#if defined(GL_ANDROID_extension_pack_es31a)\n"
