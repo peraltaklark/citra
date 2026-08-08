@@ -170,15 +170,16 @@ RasterizerOpenGL::RasterizerOpenGL()
     uniform_block_data.proctex_diff_lut_dirty = true;
 
     glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &uniform_buffer_alignment);
-        uniform_size_aligned_vs =
+    uniform_size_aligned_vs =
         Common::AlignUp<std::size_t>(sizeof(VSUniformData), uniform_buffer_alignment);
     uniform_size_aligned_fs =
         Common::AlignUp<std::size_t>(sizeof(UniformData), uniform_buffer_alignment);
     uniform_size_aligned_light =
         Common::AlignUp<std::size_t>(sizeof(UniformLightData), uniform_buffer_alignment);
+}
 
 RasterizerOpenGL::~RasterizerOpenGL() = default;
-        
+
 void RasterizerOpenGL::SyncEntireState() {
     if (AllowShadow) {
         DestroyShadowTextures();
