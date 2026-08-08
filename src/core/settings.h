@@ -173,7 +173,7 @@ struct Values {
     bool use_hw_shader;
     bool use_shader_jit;
     bool filter_mode;
-    bool allow_shadow = true;
+    bool allow_shadow;
     bool display_transfer_hack;
     bool use_linear_filter;
     u16 resolution_factor;
