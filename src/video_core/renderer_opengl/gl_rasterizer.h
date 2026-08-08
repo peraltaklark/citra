@@ -347,12 +347,4 @@ private:
     std::array<GLvec4, 256> proctex_lut_data{};
     std::array<GLvec4, 256> proctex_diff_lut_data{};
 
-    // Dedicated shadow textures (immutable storage for GLES image load/store)
-    GLuint shadow_buffer_texture = 0;
-    GLuint shadow_face_textures[6] = {};
-    bool shadow_textures_created = false;
-    void CreateShadowTextures(int width, int height);
-    void DestroyShadowTextures();
-};
-
 } // namespace OpenGL
