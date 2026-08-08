@@ -847,7 +847,12 @@ bool RasterizerOpenGL::Draw(bool accelerate, bool is_indexed) {
         glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
         glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, 0,
                                0);
-                state.image_shadow_buffer = color_surface->texture.handle;
+                // Cache the shadow buffer handle - only update if valid, keep old if new is 0
+        static GLuint cached_shadow_buffer = 0;
+        if (color_surface && color_surface->texture.handle) {
+            cached_shadow_buffer = color_surface->texture.handle;
+        }
+        state.image_shadow_buffer = cached_shadow_buffer;
     } else {
         if (framebuffer_info.color_attachment != color_attachment) {
             glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
