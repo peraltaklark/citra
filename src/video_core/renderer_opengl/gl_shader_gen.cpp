@@ -1461,7 +1461,9 @@ std::string GenerateFragmentShader(const PicaFSConfig& config, bool separable_sh
         out += fragment_shader_precision_OES;
     } else {
         out += R"(
-#extension GL_ARB_shader_image_load_store : enable
+out += "#if defined(GL_ANDROID_extension_pack_es31a)\n";
+out += "#extension GL_ANDROID_extension_pack_es31a : enable\n";
+out += "#endif // defined(GL_ANDROID_extension_pack_es31a)\n";
 #extension GL_ARB_shader_image_size : enable
 )";
     }
@@ -1554,9 +1556,6 @@ float getLod(vec2 coord) {
 )";
 
     if (shadow_rendering) {
-        if (GLES) {
-            out += "#extension GL_ANDROID_extension_pack_es31a : enable\n";
-        }
         AppendShadowRendering(out, config);
     } else {
         out += R"(
