@@ -84,11 +84,21 @@ bool ShouldSuppressPokemonFeedbackTexture(u64 title_id, u64 vs_hash, u64 fs_hash
 
     (void)vs_hash;
     if (texture_phys_addr == draw_depth_addr) {
+        // Suppress ALL live depth self-feedback in the Pokemon battle composite. A pass that samples
+        // the texture bound as the current draw's own depth target reads undefined data on real
+        // hardware; here it renders as the black "moving lines" artifact. The earlier fix enumerated
+        // a handful of fragment-shader hashes, but different battle scenes use many more of them
+        // (20+ observed across Pokemon Y trainer fights on device 2026-07-24), so the lines returned
+        // in scenes the list did not cover. Nulling the read by the feedback pattern (sampled
+        // texture == current depth target) instead of by hash fixes every battle scene at once, and
+        // color self-feedback is already handled separately via a copy of the render target.
         return true;
     }
 
     switch (fs_hash) {
     case 0xD375021927AD9455ull:
+        // This battle composite samples a specific offscreen surface while drawing the final
+        // main target. Suppressing only that source avoids the remaining left-side corruption.
         return texture_phys_addr == 0x181BD000u;
     default:
         return false;
@@ -227,6 +237,7 @@ RasterizerOpenGL::RasterizerOpenGL()
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer.GetHandle());
 
+    // 845需要开启分离着色器，但开启后Mali GPU会挂掉，究极日也有显示问题！
     const bool use_separable_shader = Settings::values.use_separable_shader;
     shader_program_manager = std::make_unique<ShaderProgramManager>(use_separable_shader);
 
@@ -242,6 +253,7 @@ RasterizerOpenGL::RasterizerOpenGL()
 RasterizerOpenGL::~RasterizerOpenGL() = default;
 
 void RasterizerOpenGL::SyncEntireState() {
+    // Sync fixed function OpenGL state
     SyncClipEnabled();
     SyncCullMode();
     SyncBlendEnabled();
@@ -254,6 +266,7 @@ void RasterizerOpenGL::SyncEntireState() {
     SyncStencilWriteMask();
     SyncDepthWriteMask();
 
+    // Sync uniforms
     SyncClipCoef();
     SyncDepthScale();
     SyncDepthOffset();
@@ -348,6 +361,8 @@ RasterizerOpenGL::VertexArrayInfo RasterizerOpenGL::AnalyzeVertexArray(bool is_i
 
         vertex_min = 0xFFFF;
         vertex_max = 0;
+        // u32 size = regs.pipeline.num_vertices * (index_u16 ? 2 : 1);
+        // res_cache.FlushRegion(address, size, nullptr);
         if (index_u16) {
             for (u32 i = 0; i < regs.pipeline.num_vertices; ++i) {
                 u32 vertex = index_address_16[i];
@@ -415,6 +430,8 @@ void RasterizerOpenGL::SetupVertexArray(u8* array_ptr, GLintptr buffer_offset,
                     offset += vertex_attributes.GetStride(attribute_index);
                 }
             } else {
+                // Attribute ids 12, 13, 14 and 15 signify 4, 8, 12 and 16-byte paddings,
+                // respectively
                 offset = Common::AlignUp(offset, 4);
                 offset += (attribute_index - 11) * 4;
             }
@@ -426,6 +443,7 @@ void RasterizerOpenGL::SetupVertexArray(u8* array_ptr, GLintptr buffer_offset,
         u32 vertex_num = vs_input_index_max - vs_input_index_min + 1;
         u32 data_size = loader.byte_count * vertex_num;
 
+        // res_cache.FlushRegion(data_addr, data_size, nullptr);
         std::memcpy(array_ptr, VideoCore::Memory()->GetPhysicalPointer(data_addr), data_size);
 
         array_ptr += data_size;
@@ -623,7 +641,6 @@ void RasterizerOpenGL::BindFramebufferDepth(OpenGLState& state, const Surface& s
 
 bool RasterizerOpenGL::Draw(bool accelerate, bool is_indexed) {
     const auto& regs = Pica::g_state.regs;
-    // FIX 1: allow shadow_rendering to be modified when cubemap faces are missing
     bool shadow_rendering = regs.framebuffer.IsShadowRendering();
     LOGI("shadow_rendering=%d, allow_shadow=%d", shadow_rendering, Settings::values.allow_shadow);
     if (shadow_rendering && !AllowShadow) {
@@ -671,16 +688,23 @@ bool RasterizerOpenGL::Draw(bool accelerate, bool is_indexed) {
     const u32 current_depth_addr =
         static_cast<u32>(regs.framebuffer.framebuffer.GetDepthBufferPhysicalAddress());
 #ifdef ARCHITECTURE_ARM64
-    if ((current_title_id == 0x0004000000033400ull ||
-         current_title_id == 0x0004000000033500ull ||
-         current_title_id == 0x0004000000033600ull ||
-         current_title_id == 0x000400000008F800ull ||
+    // The Legend of Zelda: Ocarina of Time 3D renders a reflection/effect surface over the Sacred
+    // Forest Meadow pool by sampling an off-screen render target (produced earlier in the frame at
+    // physical base 0x18000000). On this Android GLES build that sampled buffer reads back as solid
+    // black, so the surface draws as a large opaque black quad on the ground that pops in when Link
+    // crosses a proximity trigger. It is absent on the reference MMJ build. The offending draw is
+    // uniquely identified by its fragment-shader hash and 60-vertex indexed mesh; skip it so the
+    // pool area renders cleanly. Verified on device (S24+) 2026-07-26; no other OoT geometry was
+    // affected by the skip.
+    if ((current_title_id == 0x0004000000033400ull || // OoT 3D (JPN)
+         current_title_id == 0x0004000000033500ull || // OoT 3D (USA)
+         current_title_id == 0x0004000000033600ull || // OoT 3D (EUR)
+         current_title_id == 0x000400000008F800ull || // OoT 3D (variant)
          current_title_id == 0x000400000008F900ull) &&
         current_fs_hash == 0xb335c72627f48034ull && regs.pipeline.num_vertices == 60) {
         return true;
     }
 #endif
-
     // Sync and bind the texture surfaces
     const auto pica_textures = regs.texturing.GetTextures();
     for (unsigned texture_index = 0; texture_index < pica_textures.size(); ++texture_index) {
@@ -737,8 +761,8 @@ bool RasterizerOpenGL::Draw(bool accelerate, bool is_indexed) {
                     surface = res_cache.GetTextureSurface(info);
                     state.image_shadow_texture_nz =
                         surface != nullptr ? surface->texture.handle : 0;
-
-                    // FIX 2: if any cubemap face is missing, disable shadow rendering for this frame
+                    
+                    // If any shadow cubemap face is missing, disable shadow rendering for this frame
                     if (!state.image_shadow_texture_px || !state.image_shadow_texture_nx ||
                         !state.image_shadow_texture_py || !state.image_shadow_texture_ny ||
                         !state.image_shadow_texture_pz || !state.image_shadow_texture_nz) {
@@ -762,7 +786,7 @@ bool RasterizerOpenGL::Draw(bool accelerate, bool is_indexed) {
 
                     texture_cube_sampler.SyncWithConfig(texture.config);
                     state.texture_units[texture_index].texture_2d = 0;
-                    continue;
+                    continue; // Texture unit 0 setup finished. Continue to next unit
                 }
                 state.texture_cube_unit.texture_cube = 0;
             }
@@ -783,6 +807,14 @@ bool RasterizerOpenGL::Draw(bool accelerate, bool is_indexed) {
                     state.texture_units[texture_index].texture_2d = surface->texture.handle;
                 }
             } else {
+                /// texture_null
+                // Can occur when texture addr is null or its memory is unmapped/invalid
+                // HACK: In this case, the correct behaviour for the PICA is to use the last
+                // rendered colour. But because this would be impractical to implement, the
+                // next best alternative is to use a clear texture, essentially skipping
+                // the geometry in question.
+                // For example: a bug in Pokemon X/Y causes NULL-texture squares to be drawn
+                // on the male character's face, which in the OpenGL default appear black.
                 state.texture_units[texture_index].texture_2d = texture_null.handle;
             }
         } else {
@@ -804,6 +836,7 @@ bool RasterizerOpenGL::Draw(bool accelerate, bool is_indexed) {
                                              viewport_rect_unscaled.bottom * res_scale,
                                          surfaces_rect.bottom, surfaces_rect.top))}; // Bottom
 
+    // Sync the viewport
     state.viewport.x =
         static_cast<GLint>(surfaces_rect.left) + viewport_rect_unscaled.left * res_scale;
     state.viewport.y =
@@ -811,6 +844,7 @@ bool RasterizerOpenGL::Draw(bool accelerate, bool is_indexed) {
     state.viewport.width = static_cast<GLsizei>(viewport_rect_unscaled.GetWidth() * res_scale);
     state.viewport.height = static_cast<GLsizei>(viewport_rect_unscaled.GetHeight() * res_scale);
 
+    // Bind the framebuffer surfaces
     OpenGLState::BindDrawFramebuffer(framebuffer.handle);
 
     if (shadow_rendering) {
@@ -819,10 +853,12 @@ bool RasterizerOpenGL::Draw(bool accelerate, bool is_indexed) {
         }
         framebuffer_info.color_attachment = 0;
         framebuffer_info.depth_attachment = 0;
+        #ifndef CITRA_GLES
         glFramebufferParameteri(GL_DRAW_FRAMEBUFFER, GL_FRAMEBUFFER_DEFAULT_WIDTH,
                                 color_surface->GetScaledWidth());
         glFramebufferParameteri(GL_DRAW_FRAMEBUFFER, GL_FRAMEBUFFER_DEFAULT_HEIGHT,
                                 color_surface->GetScaledHeight());
+        #endif // CITRA_GLES
         glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
         glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, 0,
                                0);
@@ -836,6 +872,7 @@ bool RasterizerOpenGL::Draw(bool accelerate, bool is_indexed) {
         if (depth_surface != nullptr) {
             if (has_stencil) {
                 if (framebuffer_info.depth_attachment != depth_surface->texture.handle) {
+                    // attach both depth and stencil
                     glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
                                            GL_TEXTURE_2D, depth_surface->texture.handle, 0);
                     framebuffer_info.depth_attachment = depth_surface->texture.handle;
@@ -843,8 +880,10 @@ bool RasterizerOpenGL::Draw(bool accelerate, bool is_indexed) {
                     framebuffer_info.depth_height = depth_surface->height;
                 }
             } else if (framebuffer_info.depth_attachment != depth_surface->texture.handle) {
+                // attach depth
                 glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D,
                                        depth_surface->texture.handle, 0);
+                // clear stencil attachment
                 glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, 0,
                                        0);
                 framebuffer_info.depth_attachment = depth_surface->texture.handle;
@@ -854,6 +893,7 @@ bool RasterizerOpenGL::Draw(bool accelerate, bool is_indexed) {
         } else if (framebuffer_info.depth_attachment != 0) {
             if (framebuffer_info.depth_width < surfaces_rect.right / res_scale ||
                 framebuffer_info.depth_height < surfaces_rect.top / res_scale) {
+                // clear both depth and stencil attachment
                 glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
                                        GL_TEXTURE_2D, 0, 0);
                 framebuffer_info.depth_attachment = 0;
@@ -864,10 +904,14 @@ bool RasterizerOpenGL::Draw(bool accelerate, bool is_indexed) {
         }
     }
 
+    // Scissor checks are window-, not viewport-relative, which means that if the cached texture
+    // sub-rect changes, the scissor bounds also need to be updated.
     GLint scissor_x1 =
         static_cast<GLint>(surfaces_rect.left + regs.rasterizer.scissor_test.x1 * res_scale);
     GLint scissor_y1 =
         static_cast<GLint>(surfaces_rect.bottom + regs.rasterizer.scissor_test.y1 * res_scale);
+    // x2, y2 have +1 added to cover the entire pixel area, otherwise you might get cracks when
+    // scaling or doing multisampling.
     GLint scissor_x2 =
         static_cast<GLint>(surfaces_rect.left + (regs.rasterizer.scissor_test.x2 + 1) * res_scale);
     GLint scissor_y2 = static_cast<GLint>(surfaces_rect.bottom +
@@ -885,21 +929,30 @@ bool RasterizerOpenGL::Draw(bool accelerate, bool is_indexed) {
         uniform_block_data.dirty = true;
     }
 
+    // Sync and bind the shader
     if (shader_dirty) {
         SetShader();
         shader_dirty = false;
     }
 
+    // Sync the LUTs within the texture buffer
     SyncAndUploadLUTs();
     SyncAndUploadLUTsLF();
+
+    // Sync the uniform data
     UploadUniforms(accelerate);
 
+    // Viewport can have negative offsets or larger
+    // dimensions than our framebuffer sub-rect.
+    // Enable scissor test to prevent drawing
+    // outside of the framebuffer region
     state.scissor.enabled = true;
     state.scissor.x = draw_rect.left;
     state.scissor.y = draw_rect.bottom;
     state.scissor.width = draw_rect.GetWidth();
     state.scissor.height = draw_rect.GetHeight();
 
+    // Draw the vertex batch
     bool succeeded = true;
     if (accelerate) {
         succeeded = AccelerateDrawBatchInternal(is_indexed);
@@ -929,6 +982,7 @@ bool RasterizerOpenGL::Draw(bool accelerate, bool is_indexed) {
 
     vertex_batch.clear();
 
+    // Reset textures in rasterizer state context because the rasterizer cache might delete them
     for (auto& texture_unit : state.texture_units) {
         texture_unit.texture_2d = 0;
     }
@@ -949,6 +1003,7 @@ bool RasterizerOpenGL::Draw(bool accelerate, bool is_indexed) {
                         GL_TEXTURE_UPDATE_BARRIER_BIT | GL_FRAMEBUFFER_BARRIER_BIT);
     }
 
+    // Mark framebuffer surfaces as dirty
     Common::Rectangle<u32> draw_rect_unscaled{draw_rect.left / res_scale, draw_rect.top / res_scale,
                                               draw_rect.right / res_scale,
                                               draw_rect.bottom / res_scale};
