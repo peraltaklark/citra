@@ -347,10 +347,6 @@ private:
     std::array<GLvec4, 256> proctex_lut_data{};
     std::array<GLvec4, 256> proctex_diff_lut_data{};
 
-    // Dedicated R32UI textures for shadow mapping (write buffer + 6 read faces)
-    GLuint shadow_buffer_texture = 0;
-    GLuint shadow_face_textures[6] = {};
-    int shadow_buffer_width = 0;
-    int shadow_buffer_height = 0;
+
 };
 } // namespace OpenGL
