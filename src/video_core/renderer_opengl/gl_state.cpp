@@ -208,37 +208,37 @@ void OpenGLState::Apply() const {
     if (AllowShadow) {
         if (image_shadow_buffer != cur_state.image_shadow_buffer) {
             glBindImageTexture(ImageUnits::ShadowBuffer, image_shadow_buffer, 0, GL_FALSE, 0,
-                               GL_READ_WRITE, GL_RGBA8UI);
+                               GL_READ_WRITE, GL_R32UI);
         }
 
         if (image_shadow_texture_px != cur_state.image_shadow_texture_px) {
             glBindImageTexture(ImageUnits::ShadowTexturePX, image_shadow_texture_px, 0, GL_FALSE, 0,
-                               GL_READ_ONLY, GL_RGBA8UI);
+                               GL_READ_ONLY, GL_R32UI);
         }
 
         if (image_shadow_texture_nx != cur_state.image_shadow_texture_nx) {
             glBindImageTexture(ImageUnits::ShadowTextureNX, image_shadow_texture_nx, 0, GL_FALSE, 0,
-                               GL_READ_ONLY, GL_RGBA8UI);
+                               GL_READ_ONLY, GL_R32UI);
         }
 
         if (image_shadow_texture_py != cur_state.image_shadow_texture_py) {
             glBindImageTexture(ImageUnits::ShadowTexturePY, image_shadow_texture_py, 0, GL_FALSE, 0,
-                               GL_READ_ONLY, GL_RGBA8UI);
+                               GL_READ_ONLY, GL_R32UI);
         }
 
         if (image_shadow_texture_ny != cur_state.image_shadow_texture_ny) {
             glBindImageTexture(ImageUnits::ShadowTextureNY, image_shadow_texture_ny, 0, GL_FALSE, 0,
-                               GL_READ_ONLY, GL_RGBA8UI);
+                               GL_READ_ONLY, GL_R32UI);
         }
 
         if (image_shadow_texture_pz != cur_state.image_shadow_texture_pz) {
             glBindImageTexture(ImageUnits::ShadowTexturePZ, image_shadow_texture_pz, 0, GL_FALSE, 0,
-                               GL_READ_ONLY, GL_RGBA8UI);
+                               GL_READ_ONLY, GL_R32UI);
         }
 
         if (image_shadow_texture_nz != cur_state.image_shadow_texture_nz) {
             glBindImageTexture(ImageUnits::ShadowTextureNZ, image_shadow_texture_nz, 0, GL_FALSE, 0,
-                               GL_READ_ONLY, GL_RGBA8UI);
+                               GL_READ_ONLY, GL_R32UI);
         }
     }
 
@@ -430,37 +430,37 @@ void OpenGLState::ResetTexture(GLuint handle) {
         if (cur_state.image_shadow_buffer == handle) {
             cur_state.image_shadow_buffer = 0;
             glBindImageTexture(ImageUnits::ShadowBuffer, 0, 0, GL_FALSE, 0, GL_READ_WRITE,
-                               GL_RGBA8UI);
+                               GL_R32UI);
         }
         if (cur_state.image_shadow_texture_px == handle) {
             cur_state.image_shadow_texture_px = 0;
             glBindImageTexture(ImageUnits::ShadowTexturePX, 0, 0, GL_FALSE, 0, GL_READ_ONLY,
-                               GL_RGBA8UI);
+                               GL_R32UI);
         }
         if (cur_state.image_shadow_texture_nx == handle) {
             cur_state.image_shadow_texture_nx = 0;
             glBindImageTexture(ImageUnits::ShadowTextureNX, 0, 0, GL_FALSE, 0, GL_READ_ONLY,
-                               GL_RGBA8UI);
+                               GL_R32UI);
         }
         if (cur_state.image_shadow_texture_py == handle) {
             cur_state.image_shadow_texture_py = 0;
             glBindImageTexture(ImageUnits::ShadowTexturePY, 0, 0, GL_FALSE, 0, GL_READ_ONLY,
-                               GL_RGBA8UI);
+                               GL_R32UI);
         }
         if (cur_state.image_shadow_texture_ny == handle) {
             cur_state.image_shadow_texture_ny = 0;
             glBindImageTexture(ImageUnits::ShadowTextureNY, 0, 0, GL_FALSE, 0, GL_READ_ONLY,
-                               GL_RGBA8UI);
+                               GL_R32UI);
         }
         if (cur_state.image_shadow_texture_pz == handle) {
             cur_state.image_shadow_texture_pz = 0;
             glBindImageTexture(ImageUnits::ShadowTexturePZ, 0, 0, GL_FALSE, 0, GL_READ_ONLY,
-                               GL_RGBA8UI);
+                               GL_R32UI);
         }
         if (cur_state.image_shadow_texture_nz == handle) {
             cur_state.image_shadow_texture_nz = 0;
             glBindImageTexture(ImageUnits::ShadowTextureNZ, 0, 0, GL_FALSE, 0, GL_READ_ONLY,
-                               GL_RGBA8UI);
+                               GL_R32UI);
         }
     }
 }
