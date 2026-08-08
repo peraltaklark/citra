@@ -346,6 +346,14 @@ private:
     std::array<GLvec2, 128> proctex_alpha_map_data{};
     std::array<GLvec4, 256> proctex_lut_data{};
     std::array<GLvec4, 256> proctex_diff_lut_data{};
+    // Dedicated shadow textures (Azahar pattern - immutable R32UI, managed lifetime)
+    GLuint shadow_buffer_handle = 0;
+    GLuint shadow_face_handles[6] = {};
+    bool shadow_textures_ready = false;
+    int shadow_width = 0;
+    int shadow_height = 0;
+    void InitShadowTextures(int width, int height);
+    void DestroyShadowTextures();
 
 
 };
