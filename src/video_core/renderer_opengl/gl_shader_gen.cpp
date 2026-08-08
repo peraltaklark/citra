@@ -1487,13 +1487,13 @@ uniform samplerBuffer texture_buffer_lut_rgba;
 
     if (shadow_rendering) {
         out += R"(
-layout(r32ui) uniform readonly uimage2D shadow_texture_px;
-layout(r32ui) uniform readonly uimage2D shadow_texture_nx;
-layout(r32ui) uniform readonly uimage2D shadow_texture_py;
-layout(r32ui) uniform readonly uimage2D shadow_texture_ny;
-layout(r32ui) uniform readonly uimage2D shadow_texture_pz;
-layout(r32ui) uniform readonly uimage2D shadow_texture_nz;
-layout(r32ui) uniform uimage2D shadow_buffer;
+layout(rgba8ui) uniform readonly uimage2D shadow_texture_px;
+layout(rgba8ui) uniform readonly uimage2D shadow_texture_nx;
+layout(rgba8ui) uniform readonly uimage2D shadow_texture_py;
+layout(rgba8ui) uniform readonly uimage2D shadow_texture_ny;
+layout(rgba8ui) uniform readonly uimage2D shadow_texture_pz;
+layout(rgba8ui) uniform readonly uimage2D shadow_texture_nz;
+layout(rgba8ui) uniform uimage2D shadow_buffer;
 )";
     }
 
