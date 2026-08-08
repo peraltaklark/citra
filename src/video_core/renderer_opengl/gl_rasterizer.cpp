@@ -822,6 +822,20 @@ bool RasterizerOpenGL::Draw(bool accelerate, bool is_indexed) {
         }
     }
 
+    // Final safety check: if any shadow surface is missing, disable shadow rendering
+    if (shadow_rendering) {
+        if (!color_surface) {
+            shadow_rendering = false;
+        }
+        // Also verify cubemap faces if we're using shadow cube (already checked in the loop, but double-check)
+        if (shadow_rendering && state.image_shadow_texture_px == 0 && state.image_shadow_texture_nx == 0 &&
+            state.image_shadow_texture_py == 0 && state.image_shadow_texture_ny == 0 &&
+            state.image_shadow_texture_pz == 0 && state.image_shadow_texture_nz == 0) {
+            // No cubemap faces available, can't render shadows
+            shadow_rendering = false;
+        }
+    }
+
     Common::Rectangle<u32> draw_rect{
         static_cast<u32>(std::clamp<s32>(static_cast<s32>(surfaces_rect.left) +
                                              viewport_rect_unscaled.left * res_scale,
