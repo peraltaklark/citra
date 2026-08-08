@@ -172,6 +172,58 @@ RasterizerOpenGL::RasterizerOpenGL()
     glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &uniform_buffer_alignment);
     uniform_size_aligned_vs =
 
+
+RasterizerOpenGL::~RasterizerOpenGL() = default;
+
+void RasterizerOpenGL::SyncEntireState() {
+    if (AllowShadow) {
+        DestroyShadowTextures();
+    }
+
+    // Sync fixed function OpenGL state
+    SyncClipEnabled();
+    SyncCullMode();
+    SyncBlendEnabled();
+    SyncBlendFuncs();
+    SyncBlendColor();
+    SyncLogicOp();
+    SyncStencilTest();
+    SyncDepthTest();
+    SyncColorWriteMask();
+    SyncStencilWriteMask();
+    SyncDepthWriteMask();
+
+    // Sync uniforms
+    SyncClipCoef();
+    SyncDepthScale();
+    SyncDepthOffset();
+    SyncAlphaTest();
+    SyncCombinerColor();
+    auto& tev_stages = Pica::g_state.regs.texturing.GetTevStages();
+    for (std::size_t index = 0; index < tev_stages.size(); ++index)
+        SyncTevConstColor(index, tev_stages[index]);
+
+    SyncGlobalAmbient();
+    SyncLightingLutData();
+    for (u32 light_index = 0; light_index < 8; light_index++) {
+        SyncLightSpecular0(light_index);
+        SyncLightSpecular1(light_index);
+        SyncLightDiffuse(light_index);
+        SyncLightAmbient(light_index);
+        SyncLightPosition(light_index);
+        SyncLightDistanceAttenuationBias(light_index);
+        SyncLightDistanceAttenuationScale(light_index);
+    }
+
+    SyncFogColor();
+    SyncFogLutData();
+    SyncProcTexNoise();
+    SyncProcTexBias();
+    SyncShadowBias();
+    SyncShadowTextureBias();
+    SyncLightingLutScale();
+}
+
 void RasterizerOpenGL::CreateShadowTextures(int width, int height) {
     if (shadow_textures_created) return;
     if (width <= 0 || height <= 0) return;
@@ -300,57 +352,6 @@ void RasterizerOpenGL::DestroyShadowTextures() {
     glDisable(GL_BLEND);
 
     SyncEntireState();
-}
-
-RasterizerOpenGL::~RasterizerOpenGL() = default;
-
-void RasterizerOpenGL::SyncEntireState() {
-    if (AllowShadow) {
-        DestroyShadowTextures();
-    }
-
-    // Sync fixed function OpenGL state
-    SyncClipEnabled();
-    SyncCullMode();
-    SyncBlendEnabled();
-    SyncBlendFuncs();
-    SyncBlendColor();
-    SyncLogicOp();
-    SyncStencilTest();
-    SyncDepthTest();
-    SyncColorWriteMask();
-    SyncStencilWriteMask();
-    SyncDepthWriteMask();
-
-    // Sync uniforms
-    SyncClipCoef();
-    SyncDepthScale();
-    SyncDepthOffset();
-    SyncAlphaTest();
-    SyncCombinerColor();
-    auto& tev_stages = Pica::g_state.regs.texturing.GetTevStages();
-    for (std::size_t index = 0; index < tev_stages.size(); ++index)
-        SyncTevConstColor(index, tev_stages[index]);
-
-    SyncGlobalAmbient();
-    SyncLightingLutData();
-    for (u32 light_index = 0; light_index < 8; light_index++) {
-        SyncLightSpecular0(light_index);
-        SyncLightSpecular1(light_index);
-        SyncLightDiffuse(light_index);
-        SyncLightAmbient(light_index);
-        SyncLightPosition(light_index);
-        SyncLightDistanceAttenuationBias(light_index);
-        SyncLightDistanceAttenuationScale(light_index);
-    }
-
-    SyncFogColor();
-    SyncFogLutData();
-    SyncProcTexNoise();
-    SyncProcTexBias();
-    SyncShadowBias();
-    SyncShadowTextureBias();
-    SyncLightingLutScale();
 }
 
 /**
