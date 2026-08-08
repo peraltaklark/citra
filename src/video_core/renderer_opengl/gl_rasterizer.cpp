@@ -245,7 +245,6 @@ RasterizerOpenGL::RasterizerOpenGL()
 
     SyncEntireState();
 }
-}
 
 RasterizerOpenGL::~RasterizerOpenGL() = default;
 
