@@ -1,6 +1,3 @@
-#include <android/log.h>
-#define LOG_TAG "CitraShadow"
-#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 // Copyright 2015 Citra Emulator Project
 // Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
@@ -123,7 +120,7 @@ RasterizerOpenGL::RasterizerOpenGL()
       texture_buffer(GL_TEXTURE_BUFFER, is_mali_gpu ? 11264 : TEXTURE_BUFFER_SIZE),
       texture_lf_buffer(GL_TEXTURE_BUFFER, is_mali_gpu ? 525312 : TEXTURE_BUFFER_SIZE) {
 
-    AllowShadow = GLAD_GL_OES_shader_image_atomic || GLAD_GL_EXT_shader_image_load_store || GLAD_GL_ANDROID_extension_pack_es31a;
+    AllowShadow = ((GLAD_GL_ARB_shader_image_load_store && GLAD_GL_ARB_shader_image_size && GLAD_GL_ARB_framebuffer_no_attachments) || GLAD_GL_ANDROID_extension_pack_es31a) && Settings::values.allow_shadow;
 
     // Clipping plane 0 is always enabled for PICA fixed clip plane z <= 0
     state.clip_distance[0] = true;
@@ -641,8 +638,7 @@ void RasterizerOpenGL::BindFramebufferDepth(OpenGLState& state, const Surface& s
 
 bool RasterizerOpenGL::Draw(bool accelerate, bool is_indexed) {
     const auto& regs = Pica::g_state.regs;
-    bool shadow_rendering = regs.framebuffer.IsShadowRendering();
-    LOGI("shadow_rendering=%d, allow_shadow=%d", shadow_rendering, Settings::values.allow_shadow);
+    const bool shadow_rendering = regs.framebuffer.IsShadowRendering();
     if (shadow_rendering && !AllowShadow) {
         return true;
     }
@@ -761,13 +757,6 @@ bool RasterizerOpenGL::Draw(bool accelerate, bool is_indexed) {
                     surface = res_cache.GetTextureSurface(info);
                     state.image_shadow_texture_nz =
                         surface != nullptr ? surface->texture.handle : 0;
-                    
-                    // If any shadow cubemap face is missing, disable shadow rendering for this frame
-                    if (!state.image_shadow_texture_px || !state.image_shadow_texture_nx ||
-                        !state.image_shadow_texture_py || !state.image_shadow_texture_ny ||
-                        !state.image_shadow_texture_pz || !state.image_shadow_texture_nz) {
-                        shadow_rendering = false;
-                    }
                     continue;
                 }
                 case TextureType::TextureCube:
@@ -822,20 +811,6 @@ bool RasterizerOpenGL::Draw(bool accelerate, bool is_indexed) {
         }
     }
 
-    // Final safety check: if any shadow surface is missing, disable shadow rendering
-    if (shadow_rendering) {
-        if (!color_surface) {
-            shadow_rendering = false;
-        }
-        // Also verify cubemap faces if we're using shadow cube (already checked in the loop, but double-check)
-        if (shadow_rendering && state.image_shadow_texture_px == 0 && state.image_shadow_texture_nx == 0 &&
-            state.image_shadow_texture_py == 0 && state.image_shadow_texture_ny == 0 &&
-            state.image_shadow_texture_pz == 0 && state.image_shadow_texture_nz == 0) {
-            // No cubemap faces available, can't render shadows
-            shadow_rendering = false;
-        }
-    }
-
     Common::Rectangle<u32> draw_rect{
         static_cast<u32>(std::clamp<s32>(static_cast<s32>(surfaces_rect.left) +
                                              viewport_rect_unscaled.left * res_scale,
@@ -867,12 +842,10 @@ bool RasterizerOpenGL::Draw(bool accelerate, bool is_indexed) {
         }
         framebuffer_info.color_attachment = 0;
         framebuffer_info.depth_attachment = 0;
-        #ifndef CITRA_GLES
         glFramebufferParameteri(GL_DRAW_FRAMEBUFFER, GL_FRAMEBUFFER_DEFAULT_WIDTH,
                                 color_surface->GetScaledWidth());
         glFramebufferParameteri(GL_DRAW_FRAMEBUFFER, GL_FRAMEBUFFER_DEFAULT_HEIGHT,
                                 color_surface->GetScaledHeight());
-        #endif // CITRA_GLES
         glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
         glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, 0,
                                0);
