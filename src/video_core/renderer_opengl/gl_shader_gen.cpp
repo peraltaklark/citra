@@ -1554,6 +1554,9 @@ float getLod(vec2 coord) {
 )";
 
     if (shadow_rendering) {
+        if (GLES) {
+            out += "#extension GL_ANDROID_extension_pack_es31a : enable\n";
+        }
         AppendShadowRendering(out, config);
     } else {
         out += R"(
