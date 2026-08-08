@@ -171,6 +171,61 @@ RasterizerOpenGL::RasterizerOpenGL()
 
     glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &uniform_buffer_alignment);
     uniform_size_aligned_vs =
+
+void RasterizerOpenGL::CreateShadowTextures(int width, int height) {
+    if (shadow_textures_created) return;
+    if (width <= 0 || height <= 0) return;
+    
+    LOG_INFO(Render_OpenGL, "Creating shadow textures {}x{}", width, height);
+    
+    // Shadow buffer (read-write)
+    glGenTextures(1, &shadow_buffer_texture);
+    glBindTexture(GL_TEXTURE_2D, shadow_buffer_texture);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_R32UI, width, height);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    
+    // 6 face textures (read-only)
+    glGenTextures(6, shadow_face_textures);
+    for (int i = 0; i < 6; i++) {
+        glBindTexture(GL_TEXTURE_2D, shadow_face_textures[i]);
+        glTexStorage2D(GL_TEXTURE_2D, 1, GL_R32UI, width, height);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    }
+    
+    // Bind to image units
+    glBindImageTexture(ImageUnits::ShadowBuffer, shadow_buffer_texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
+    glBindImageTexture(ImageUnits::ShadowTexturePX, shadow_face_textures[0], 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32UI);
+    glBindImageTexture(ImageUnits::ShadowTextureNX, shadow_face_textures[1], 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32UI);
+    glBindImageTexture(ImageUnits::ShadowTexturePY, shadow_face_textures[2], 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32UI);
+    glBindImageTexture(ImageUnits::ShadowTextureNY, shadow_face_textures[3], 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32UI);
+    glBindImageTexture(ImageUnits::ShadowTexturePZ, shadow_face_textures[4], 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32UI);
+    glBindImageTexture(ImageUnits::ShadowTextureNZ, shadow_face_textures[5], 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32UI);
+    
+    shadow_textures_created = true;
+}
+
+void RasterizerOpenGL::DestroyShadowTextures() {
+    if (!shadow_textures_created) return;
+    
+    // Unbind first
+    glBindImageTexture(ImageUnits::ShadowBuffer, 0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
+    for (int i = 0; i < 6; i++) {
+        glBindImageTexture(ImageUnits::ShadowTexturePX + i, 0, 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32UI);
+    }
+    
+    glDeleteTextures(1, &shadow_buffer_texture);
+    glDeleteTextures(6, shadow_face_textures);
+    shadow_buffer_texture = 0;
+    memset(shadow_face_textures, 0, sizeof(shadow_face_textures));
+    shadow_textures_created = false;
+}
+
         Common::AlignUp<std::size_t>(sizeof(VSUniformData), uniform_buffer_alignment);
     uniform_size_aligned_fs =
         Common::AlignUp<std::size_t>(sizeof(UniformData), uniform_buffer_alignment);
@@ -250,6 +305,10 @@ RasterizerOpenGL::RasterizerOpenGL()
 RasterizerOpenGL::~RasterizerOpenGL() = default;
 
 void RasterizerOpenGL::SyncEntireState() {
+    if (AllowShadow) {
+        DestroyShadowTextures();
+    }
+
     // Sync fixed function OpenGL state
     SyncClipEnabled();
     SyncCullMode();
@@ -712,8 +771,7 @@ bool RasterizerOpenGL::Draw(bool accelerate, bool is_indexed) {
                 switch (texture.config.type.Value()) {
                 case TextureType::Shadow2D: {
                     Surface surface = res_cache.GetTextureSurface(texture);
-                    state.image_shadow_texture_px =
-                        surface != nullptr ? surface->texture.handle : 0;
+                    state.image_shadow_texture_px = shadow_face_textures[0];
                     continue;
                 }
                 case TextureType::ShadowCube: {
@@ -725,38 +783,32 @@ bool RasterizerOpenGL::Draw(bool accelerate, bool is_indexed) {
                     info.physical_address =
                         regs.texturing.GetCubePhysicalAddress(CubeFace::PositiveX);
                     surface = res_cache.GetTextureSurface(info);
-                    state.image_shadow_texture_px =
-                        surface != nullptr ? surface->texture.handle : 0;
+                    state.image_shadow_texture_px = shadow_face_textures[0];
 
                     info.physical_address =
                         regs.texturing.GetCubePhysicalAddress(CubeFace::NegativeX);
                     surface = res_cache.GetTextureSurface(info);
-                    state.image_shadow_texture_nx =
-                        surface != nullptr ? surface->texture.handle : 0;
+                    state.image_shadow_texture_nx = shadow_face_textures[1];
 
                     info.physical_address =
                         regs.texturing.GetCubePhysicalAddress(CubeFace::PositiveY);
                     surface = res_cache.GetTextureSurface(info);
-                    state.image_shadow_texture_py =
-                        surface != nullptr ? surface->texture.handle : 0;
+                    state.image_shadow_texture_py = shadow_face_textures[2];
 
                     info.physical_address =
                         regs.texturing.GetCubePhysicalAddress(CubeFace::NegativeY);
                     surface = res_cache.GetTextureSurface(info);
-                    state.image_shadow_texture_ny =
-                        surface != nullptr ? surface->texture.handle : 0;
+                    state.image_shadow_texture_ny = shadow_face_textures[3];
 
                     info.physical_address =
                         regs.texturing.GetCubePhysicalAddress(CubeFace::PositiveZ);
                     surface = res_cache.GetTextureSurface(info);
-                    state.image_shadow_texture_pz =
-                        surface != nullptr ? surface->texture.handle : 0;
+                    state.image_shadow_texture_pz = shadow_face_textures[4];
 
                     info.physical_address =
                         regs.texturing.GetCubePhysicalAddress(CubeFace::NegativeZ);
                     surface = res_cache.GetTextureSurface(info);
-                    state.image_shadow_texture_nz =
-                        surface != nullptr ? surface->texture.handle : 0;
+                    state.image_shadow_texture_nz = shadow_face_textures[5];
                     continue;
                 }
                 case TextureType::TextureCube:
@@ -849,7 +901,10 @@ bool RasterizerOpenGL::Draw(bool accelerate, bool is_indexed) {
         glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
         glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, 0,
                                0);
-        state.image_shadow_buffer = color_surface->texture.handle;
+                if (!shadow_textures_created) {
+            CreateShadowTextures(color_surface->GetScaledWidth(), color_surface->GetScaledHeight());
+        }
+        state.image_shadow_buffer = shadow_buffer_texture;
     } else {
         if (framebuffer_info.color_attachment != color_attachment) {
             glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
