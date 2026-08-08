@@ -245,6 +245,7 @@ RasterizerOpenGL::RasterizerOpenGL()
 
     SyncEntireState();
 }
+}
 
 RasterizerOpenGL::~RasterizerOpenGL() = default;
 
@@ -325,6 +326,7 @@ void RasterizerOpenGL::CreateShadowTextures(int width, int height) {
     
     // Bind to image units
     glBindImageTexture(ImageUnits::ShadowBuffer, shadow_buffer_texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
+    { GLenum err = glGetError(); if (err != GL_NO_ERROR) LOG_ERROR(Render_OpenGL, "glBindImageTexture ShadowBuffer error: 0x%x", err); }
     glBindImageTexture(ImageUnits::ShadowTexturePX, shadow_face_textures[0], 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32UI);
     glBindImageTexture(ImageUnits::ShadowTextureNX, shadow_face_textures[1], 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32UI);
     glBindImageTexture(ImageUnits::ShadowTexturePY, shadow_face_textures[2], 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32UI);
@@ -333,6 +335,7 @@ void RasterizerOpenGL::CreateShadowTextures(int width, int height) {
     glBindImageTexture(ImageUnits::ShadowTextureNZ, shadow_face_textures[5], 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32UI);
     
     shadow_textures_created = true;
+    LOG_INFO(Render_OpenGL, "SHADOW TEXTURES CREATED: buffer=%u, faces[0]=%u, size=%dx%d", shadow_buffer_texture, shadow_face_textures[0], width, height);
 }
 
 void RasterizerOpenGL::DestroyShadowTextures() {
@@ -697,6 +700,10 @@ void RasterizerOpenGL::BindFramebufferDepth(OpenGLState& state, const Surface& s
 bool RasterizerOpenGL::Draw(bool accelerate, bool is_indexed) {
     const auto& regs = Pica::g_state.regs;
     const bool shadow_rendering = regs.framebuffer.IsShadowRendering();
+    static int shadow_debug_count = 0;
+    if (shadow_rendering && (shadow_debug_count++ % 60 == 0)) {
+        LOG_INFO(Render_OpenGL, "SHADOW PASS DETECTED! AllowShadow={}, textures_created={}", AllowShadow, shadow_textures_created);
+    }
     if (shadow_rendering && !AllowShadow) {
         return true;
     }
